@@ -1,0 +1,4 @@
+
+bye!
+--
+GyikSoft Mailer for UNIX v2.0 user - http://esp.kign.org

@@ -1,0 +1,68 @@
+
+GyikSoft Mailer for UNIX  v2.0pre3    (C) 1997-99 by A'rpi & Pilu of ESP-team
+========================  ========
+
+This is a simple e-mail reader program for UNIX, based on the original DOS
+version called 'GyikSoft Mailer for DOS v3.4' written in Borland Pascal.
+Currently Pegasus Mail for DOS (.PMM files) and standard UNIX folders
+(and so Netscape's Inbox as well) are supported for reading.
+
+Main features:
+~~~~~~~~~~~~~~
+- Support MIME multipart mail format
+- Decode BASE64 attachments and mails
+- Decode quoted-printable mails
+- Display ISO-encoded headers correctly (many other mailer doesn't)
+- Read, Reply, Forward, Compose functions
+- Multi-level address-book
+- New mail notification (checked every 5 seconds)
+- Optimized for slow TELNET connection (minimal redrawing)
+- Optimized for speed (own buffered string reader, string routines)
+
+History:
+~~~~~~~~
+1. Idea by Pilu               - writting a mail viewer for DOS in Borland C
+2. DOS version by A'rpi       - written in Borland Pascal, still developed
+3. UNIX version v1.0 by Pilu  - some a part of pascal sources translated to C
+4. UNIX version v2.0 by A'rpi - developed in ANSI C, under LINUX
+
+Usage:
+~~~~~~
+ESC	- quit
+ENTER	- read formatted mail 
+ESC+ENTER - read raw mail source  (debug)
+ c	- compose new mail
+ r	- reply
+ f	- forward
+ 
+ s	- search backward first
+ S	- search backward next
+ n	- search forward first
+ N	- search forward next
+ p      - find forward mail with same From:
+ ctrl+p - find backward mail with same From:
+ 
+ a	- add to address book
+ F3 / ESC+3 - address book (works only at INPUT lines)
+ 
+ F 	- toggle "From:" mode  (name/email/name+email)
+ H 	- toggle displaying mail's Header (default: off)
+ P      - toggle auto quoted-Printable
+ I      - toggle case-Insensitive search
+
+Future:  (not yet implemented)
+~~~~~~~
+- send attachments
+- delete mail
+- save mail
+- selection  (F7,X,Sh+F7,P)
+
+Far future:
+~~~~~~~~~~~
+- aliases, hotkeys
+- mail-lists (HIX, listserv digest, majordomo digest) as folder
+- select folder
+- del,copy,move mail
+- filters
+
+Send bugreports and ideas to <arpi@esp.kign.org>

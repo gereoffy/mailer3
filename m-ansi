@@ -1,0 +1,4 @@
+gcc -O2 -ansi -pedantic 4.c -o a -lcurses
+
+
+

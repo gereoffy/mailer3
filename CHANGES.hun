@@ -1,0 +1,104 @@
+ChangeLog: (sorry, it's hungarian...)
+==========
+
+99/07/31.   [LINUX]      v2.0pre3
+~~~~~~~~~
+- tudja.txt -> README + INSTALL + CHANGES.hun
+- konfig dolgok kiszedve config.h-ba
+
+99/07/30.   [LINUX]
+~~~~~~~~~
+- fix: reply utan a view-nel is "> " volt a sorok elejen
+- fix: multipart levelnel a boundary-t is megjelenitette a level aljan
+- code cleanup -> hibatlanul lefordul  -ansi -pedantic  kapcsolokkal!
+
+99/07/28.   [LINUX]      v2.0pre2
+~~~~~~~~~
+- term: ctrl+E helyett ctrl+D volt a SCAN_END-nel
+- view_mail() MIME parser-je ujrairva, mostmar jobb sokkal
+  boundary kereses 10x gyorsabb lett legalabb (strpos helyett strstr)
+- string.c optimalizalasa: ciklusok helyett libc fuggvenyek (strchr, strstr...)
+- readln_sor() optimalizalasa -> kb 2x gyorsabb a folder vegigolvasas!
+- readln_sor() tovabb optim (unroll-loop) -> meg gyorsabb :)
+- upcstr() bug: nem masolta at a lezaro 0-t (csak a "javitott" verzioban)
+  emiatt neha azt is base64-dekodolta amit nem kell...
+- save_part(): base64 detektalast bizzuk inkabb a MIME-parserra -> MIMEFLAG_B64
+- keresesnel ha 1-et se talalt akkor nem redraw-olta a kepernyot
+
+99/07/27.   [LINUX]      v2.0pre1
+~~~~~~~~~
+- term: ESC+0..9 = F0..9
+- addressbook: ha filenev van megadva (nincs benne @) akkor belelep
+- f = forward
+- ESC+ENTER - view raw mail source
+- view_mail: pq-nal sorvegi = osszefuzes fix
+  (dekodolas utan nezte az = jelet, nem elotte)
+- mime_kodolas[] helyett mime_flags[] es sok kis bugfix
+  -> quoted-printable detektalas muxik, ha megse: P gomb segithet
+- header ON/OFF -> H  (ha off akkor csak From: es Subject: lesz kiirva)
+- Subject:-re is meg kell hivni az iso()-t
+- bugfix: string.c: upcstr() nem adott vissza erteket (no return value)
+- keresesek: s S n N p ctrl+p
+- forras ellenorzes -ansi -Wall kapcsolokkal, javitasok. 1 bug is elokerult:
+  a base64 filenev meghatarozakor == helyett = volt az if()-ben
+  => majdnem jo -ansi -pedantic -Wall kapcsolokkal, csak a string rutinoknal
+     vannak gondok a char elojelevel :(
+
+99/01/19.   [SGI]
+~~~~~~~~~
+- ekezetes betuk, pq nelkul is, joe -asis opcioval
+
+98/04/20.   [LINUX]    v1.x
+~~~~~~~~~
+?????????
+
+98/04/19.   [LINUX]
+~~~~~~~~~
+- From es Subject mezok - vizszintes scroll (<- es -> billentyukkel)
+- address book 
+  - Compose/reply:  To: bekeresekor kell F3-at nyomni
+  - fomenuben: A - add to addressbook
+- term.inc:  SCAN_F - funkciobillentyuk
+             Ctrl+D = DEL
+- view_mail(): base64 text kikodolas, meg lehet nezni b64 attachmenteket.
+- view_mail(): ha csak 1 part-bol all, akkor nem jon be a menu.
+- a reply a view_mail()-t hasznalja -> lehet b64-re is replyzni
+
+
+98/04/18.   [LINUX]
+~~~~~~~~~
+- sr1a.inc szetszedve string.inc es term.inc fileokra
+- term.inc: uj waitkey2() rutin, ami nodelay()-al
+  csinalja a belovasast es ez csinalja a HALFDELAY
+  figyelest is, nem a curses.half_delay() rutin.
+  Mostmar eleg 1 db ESC is a kilepeshez.
+  TESZTELNI:  nagyon lassu terminalon mit csinal?
+- redraw(): felul rosszul irta ki a level sorszamat
+            mert 0-tol kezdte a szamozast
+- term.inc: lekerdezi a terminal felbontasat term_xs;term_ys-be
+  redraw(): kihasznalja az egesz kepernyot, felhasznalva 
+            term_xs es term_ys erteket.  (ablakban futtatashoz)
+- term.inc: draw_box() vegerol kiszedtem a refresh()-t mert felesleges
+            ures keretet nem rajzol, ha meg ir bele akkor ugyis meghivja
+	    utana a refresh()-t.
+- bugfix: reply-nel neha vegtelen ciklusba kerult,
+          mert a rutin meg csak az eof_jel-et figyelte, az 
+	  eol_jel-et nem. :(  Atirva az uj readln_sor()-ra.
+- uj funkcio:  'c' = COMPOSE = uj level irasa
+- alairas (signature.txt-ben keresi) hozzaadasa reply-nel es
+  compose-nel.
+- kisebb bugfixek
+  
+regebben:     v1.0
+~~~~~~~~~
+- lekerdezi kornyezeti valtozobol a MAILBOX helyet es nevet,
+  de parameterkent megadhato masik folder is
+- ISO rutin, cim_ertelmezo, ?Q? es ?B? formatumok tamogatasa
+- MIME/multipart kezelese
+- Base64 dekodolo
+- Pegasus MAIL folderek kezelese
+- optimalizalt redraw() - lassu terminalon is elfogadhato
+  (csak a valtozasokat rajzolja ujra, nem az egesz kepernyot)
+- level kuldese, reply - egyelore csak SGI-n mukodik.
+- uj level(ek) jelzese jobb felso sarokban  !n! formaban,
+  ahol n az inditas ota erkezett levelek szama.
