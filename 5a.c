@@ -6,7 +6,7 @@
 #include "config.h"
 #include "term1.c"
 
-#define VERSION "GyikSoft Mailer for UNIX v3.99pre1 by Arpi/ESP-team (http://esp-team.scene.hu)\n\n"
+#define VERSION "GyikSoft Mailer for UNIX v3.99pre2 by Arpi/ESP-team (http://esp-team.scene.hu)\n\n"
 
 /******************************************************************************/
 
