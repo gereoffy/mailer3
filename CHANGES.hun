@@ -1,6 +1,14 @@
 ChangeLog: (sorry, it's hungarian...)
 ==========
 
+2002/02/12.   [LINUX]               v3.6
+~~~~~~~~~~~
+- increased from[] to[] etc max length
+- menu2 display code crop strings to fit screen
+- long lines support to input(), fixed few overflows
+- line filtering and wrapping -> wrap_print() added
+
+
 2001/04/04.   [LINUX,AIX]           v3.5
 ~~~~~~~~~~~
 - build .idx+.str filenames from folder filename (for $MAIL: MAIL.[idx|str])
