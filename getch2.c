@@ -14,7 +14,8 @@
 #ifdef USE_IOCTL
 #include <sys/ioctl.h>
 #endif
-#include <sys/termios.h>
+#include <termio.h>
+//#include <sys/termio.h>
 #include <unistd.h>
 
 #include "keycodes.h"
@@ -159,6 +160,7 @@ int getch2(int time){
     } else if(getch2_len>1){
       int c=getch2_buf[1];
       if(c==27){ code=KEY_ESC; len=2; goto found;}
+      if(c==13 || c==10){ code=KEY_ESC_ENTER; len=2; goto found;}
       if(c>='0' && c<='9'){ code=c-'0'+KEY_F; len=2; goto found;}
       if(getch2_len>=4 && c=='[' && getch2_buf[2]=='['){
         int c=getch2_buf[3];
