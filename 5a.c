@@ -353,11 +353,18 @@ char *foldername_str;
 
 load_termcap(NULL);
 
-restart:
 { int i;
   printf("Reading folder...\n");
   i=open_folder(folder,foldername,foldername_idx,foldername_str);
   printf("open_folder return value=%d\n",i);
+  if(i) fatal(1,"Cannot open folder/index");
+}
+
+restart:
+{ int i;
+  printf("Updating folder...\n");
+  i=update_folder(folder);
+  printf("update_folder return value=%d\n",i);
   if(i) fatal(1,"Cannot open folder/index");
   folder_size=filesize(foldername); //folder->folder_size;
   if(folder_size!=folder->folder_size){
@@ -604,13 +611,12 @@ if(gomb!='R'){
 #endif
 
 delete_mails();
-
-/* the end */
-close_folder(folder);
-
 truncate(foldername_idx,sizeof(rek_st)*MAIL_DB);
 
 if(gomb=='R') goto restart;
+
+/* the end */
+close_folder(folder);
 
 unlink(temp_nev);
 unlink(cim_temp_nev);
