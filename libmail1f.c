@@ -12,9 +12,9 @@
 #define PUFFSIZE 0x4000
 #define cim_temp_nev ".tmp.libMail~"
 
-#define STRINGS_MALLOC 0x4000
-#define STRINGS_HASH 4096
-#define INDEX_ALLOC 100
+#define STRINGS_MALLOC 0x10000
+#define STRINGS_HASH (256*1024)
+#define INDEX_ALLOC 1000
 
 char sor[sormaxsize];
 char sor2[sormaxsize];
@@ -225,7 +225,7 @@ static int parse_mail(folder_st* folder,rek_st* mail){
       if(strncasecmp(sor,"To:",3)==0)mail->to=write_strings(folder,nyir2(sor2,iso(sor+3))); else
       if(strncasecmp(sor,"Subject:",8)==0)mail->subject=write_strings(folder,nyir2(sor2,iso(sor+8))); else
       if(strncasecmp(sor,"List-",5)==0 || strncasecmp(sor,"X-List:",7)==0 || strncasecmp(sor,"X-Listname:",11)==0 ||
-         strncasecmp(sor,"Precedence: list",16)==0 || strncasecmp(sor,"Mailing-List:",13)==0)
+         strncasecmp(sor,"X-LYRIS-Message-Id:",19)==0 || strncasecmp(sor,"Precedence: list",16)==0 || strncasecmp(sor,"Mailing-List:",13)==0)
 	mail->flags|=MAILFLAG_LIST;
     }while(!eol_jel && sor[0]);
     mail->msize=puffer_pos+puffer_mut;
