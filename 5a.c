@@ -69,32 +69,57 @@ static folder_st *folder=&default_folder;
 #define MAIL_DB (folder->mail_db)
 #define UPDATE_REK(i) write_rek(folder,i,&folder->f_mails[i])
 
+static int filter_attach=0;
+static int filter_deleted=0;
+
+static int m_step(int old,int dist){
+  int dir=(dist<0)?-1:1;
+  dist*=dir;
+  while(dist>0){
+//    if(old+dir<0 || old+dir>=MAIL_DB) break;
+    old+=dir;
+    if(old<0 || old>=MAIL_DB) break; //return -1;
+    if(filter_deleted){
+      if(M_FLAGS(old)&MAILFLAG_DEL) --dist;
+    } else if(!(M_FLAGS(old)&MAILFLAG_DEL)){
+      if(filter_attach){
+	if(M_FLAGS(old)&MAILFLAG_ATTACH) --dist;
+      } else
+	--dist;
+    }
+  }
+  return old;
+}
+
 static void redraw(){
 int i;
   /* printf("\x1B[2J"); */  /* clrscr */
   int xs1=term_xs/2-20;
   int xs2=term_xs-xs1-13;
+  int y=y0;
   for(i=0;i<YS;i++){
-   if((last_y0!=y0)||((i+y0)==yy)||((i+y0)==last_yy)){ 
+   if((last_y0!=y0)||(y==yy)||(y==last_yy)||1){ 
     gotoxy(0,i+2);
-    if(yy==(i+y0)) set_color(7); else set_color(0);
+    if(yy==y) set_color(7); else set_color(0);
 
-    if((y0+i)<MAIL_DB)
+    if(y<MAIL_DB)
 /*      printf("%-28.28s %8ld  %-.40s\x1B[K\n",  */
       printf("%c%c%-*.*s %8d %-*.*s\n",
-        (M_FLAGS(y0+i)&MAILFLAG_DEL) ? 'D' :
-        (M_FLAGS(y0+i)&MAILFLAG_REPLY) ? 'R' :
-          ((M_FLAGS(y0+i)&MAILFLAG_READ) ? 'r' :
-            ((M_FLAGS(y0+i)&MAILFLAG_NEW) ? '!' : ' ')
+        (M_FLAGS(y)&MAILFLAG_DEL) ? 'D' :
+        (M_FLAGS(y)&MAILFLAG_REPLY) ? 'R' :
+          ((M_FLAGS(y)&MAILFLAG_READ) ? 'r' :
+            ((M_FLAGS(y)&MAILFLAG_NEW) ? '!' : ' ')
           ),
-	  ((M_FLAGS(y0+i)&MAILFLAG_ATTACH) ? '+' : ' '),
-        xs1,xs1,strofs2(cim_ertelmezo(M_FROM(y0+i),from_mod),xx),
-		    M_MSIZE(y0+i),
-		    xs2,xs2,strofs2(M_SUBJ(y0+i),xx)
+	  ((M_FLAGS(y)&MAILFLAG_ATTACH) ? '+' : ' '),
+        xs1,xs1,strofs2(cim_ertelmezo(M_FROM(y),from_mod),xx),
+//		    M_MSIZE(y),
+		    (y+1),
+		    xs2,xs2,strofs2(M_SUBJ(y),xx)
 	    );
     else
       printf("\x1B[K\n");
-   }   
+    y=m_step(y,1);
+   }
   }
   last_y0=y0;last_yy=yy;
 
@@ -394,10 +419,12 @@ ujra:   clrscr();last_y0=-1;
 ujra2:
 do{
   if(auto_refresh) last_y0=-1;
-  if(yy<0)yy=0;
-  if(yy>=MAIL_DB)yy=MAIL_DB-1;
+  if(yy<m_step(-1,1))yy=m_step(-1,1);
+  if(yy>m_step(MAIL_DB,-1))yy=m_step(MAIL_DB,-1);
   if(yy<y0)y0=yy;
-  if(yy>=(y0+YS))y0=yy-YS+1;
+  if(yy>=m_step(y0,YS)) y0=m_step(yy,-(YS-1));
+  if(y0<m_step(-1,1))y0=m_step(-1,1);
+//  if(y0<0)y0=m_step(-1,1);
 
   redraw();
 
@@ -416,14 +443,14 @@ do{
   gomb=getch2(HALFDELAY_TIME);
 #endif
 
-  if(gomb==KEY_UP)--yy;
-  if(gomb==KEY_DOWN)++yy;
-  if(gomb==KEY_LEFT && xx>0){--xx;goto ujra;}
-  if(gomb==KEY_RIGHT){++xx;goto ujra;}
-  if(gomb==KEY_PGUP)yy-=YS-1;
-  if(gomb==KEY_PGDWN)yy+=YS-1;
-  if(gomb==KEY_END)yy=MAIL_DB-1;
-  if(gomb==KEY_HOME)yy=0;
+  if(gomb==KEY_UP) yy=m_step(yy,-1);
+  if(gomb==KEY_DOWN) yy=m_step(yy,1);
+  if(gomb==KEY_PGUP) yy=m_step(yy,-(YS-1));
+  if(gomb==KEY_PGDWN)yy=m_step(yy,YS-1);
+  if(gomb==KEY_END)yy=MAIL_DB;//m_step(MAIL_DB,-1);
+  if(gomb==KEY_HOME)yy=0; //m_step(-1,1);
+  if(gomb==KEY_LEFT && xx>0){xx-=5;goto ujra;}
+  if(gomb==KEY_RIGHT){xx+=5;goto ujra;}
  
   /* VIEW MIME-DECODED MAIL */
   if(gomb==KEY_ENTER){
@@ -440,14 +467,24 @@ do{
     goto ujra;
   }
 
+  /* Select filtering */
+  if(gomb=='D'){
+    filter_deleted^=1;
+    yy=0;
+    goto ujra;
+  }
+  if(gomb=='A'){
+    filter_attach^=1;
+    yy=0;
+    goto ujra;
+  }
+
   /* Select for deletion */
-  if(gomb==KEY_DEL || gomb=='d' || gomb=='D'){
-    if(gomb=='D')
-      M_FLAGS(yy)|=MAILFLAG_DEL;
-    else
-      M_FLAGS(yy)^=MAILFLAG_DEL;
+  if(gomb==KEY_DEL /* || gomb=='d'*/ ){
+    M_FLAGS(yy)^=MAILFLAG_DEL;
     UPDATE_REK(yy);
-    ++yy;
+    if(m_step(yy,1)<MAIL_DB) yy=m_step(yy,1); else
+    if(m_step(yy,-1)>=0) yy=m_step(yy,-1); else yy=0;
     goto ujra;
   }
 
@@ -455,7 +492,7 @@ do{
   if(gomb=='u'){
     if(upgrade_rek(folder,&folder->f_mails[yy])>0){
       UPDATE_REK(yy);
-      ++yy;
+      if(m_step(yy,1)<MAIL_DB) yy=m_step(yy,1);
     }
     goto ujra;
   }
@@ -583,8 +620,8 @@ do{
   }
   /* S = SEARCH BACKWARD NEXT */
   if(gomb=='S'){
-    int i;
-    for(i=yy-1;i>=0;i--)
+    int i=yy;
+    while((i=m_step(i,-1))>=0)
       if(check_match(i)){
         yy=i; goto ujra2;
       }
@@ -592,8 +629,8 @@ do{
   }  
   /* N = SEARCH FORWARD NEXT */
   if(gomb=='N'){
-    int i;
-    for(i=yy+1;i<MAIL_DB;i++)
+    int i=yy;
+    while((i=m_step(i,1))<MAIL_DB)
       if(check_match(i)){
         yy=i; goto ujra2;
       }
@@ -602,9 +639,9 @@ do{
 
   /* p = SEARCH FORWARD NEXT SAME From: */
   if(gomb=='p'){
-    int i;
+    int i=yy;
       strcpy(sor2,cim_ertelmezo(M_FROM(yy),1));
-      for(i=yy+1;i<MAIL_DB;i++){
+      while((i=m_step(i,1))<MAIL_DB){
         if( strcmp(sor2,cim_ertelmezo(M_FROM(i),1))==0 ) {
           yy=i;
   	  goto ujra2;
@@ -615,9 +652,9 @@ do{
 
   /* P = SEARCH BACKWARD NEXT SAME From: */
   if(gomb=='P'-64){
-    int i;
+    int i=yy;
       strcpy(sor2,cim_ertelmezo(M_FROM(yy),1));
-      for(i=yy-1;i>=0;i--){
+      while((i=m_step(i,-1))>=0){
         if( strcmp(sor2,cim_ertelmezo(M_FROM(i),1))==0 ) {
           yy=i;
   	  goto ujra2;
@@ -642,8 +679,8 @@ if(gomb!='R'){
 }
 #endif
 
-delete_mails();
-truncate(foldername_idx,sizeof(rek_st)*MAIL_DB);
+//delete_mails();
+//truncate(foldername_idx,sizeof(rek_st)*MAIL_DB);
 
 if(gomb=='R') goto restart;
 
