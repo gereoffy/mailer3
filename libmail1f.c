@@ -607,15 +607,20 @@ int total=0;
   return total;
 }
 
-void save_mail_source(folder_st *folder,rek_st *mail, char *fnev){
-FILE *f=fopen(fnev,"wb");
+void save_mail_source_file(folder_st *folder,rek_st *mail, FILE* f){
 void *p=malloc(mail->size);
   if(!f || !p) return;
   fseek(folder->file_folder,mail->pos,SEEK_SET);
   fread(p,1,mail->size,folder->file_folder);
   fwrite(p,1,mail->size,f);
-  fclose(f);
   free(p);
+}
+
+void save_mail_source(folder_st *folder,rek_st *mail, char *fnev){
+FILE *f=fopen(fnev,"wb");
+  if(!f) return;
+  save_mail_source_file(folder,mail,f);
+  fclose(f);
 }
 
 
