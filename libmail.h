@@ -32,9 +32,12 @@ typedef struct {
   int mfs;                  /* "mail filesystem" */
   int mail_db;
   int folder_size;
-  int strings_size;
+  int strings_pos;
+  int f_mails_size;
   rek_st *f_mails;
   char *f_strings;
+  char *strings_end;
+  int  *strings_hash;
   FILE *file_folder;
   FILE *file_index;
   FILE *file_strings;
@@ -75,7 +78,7 @@ extern char sor2[sormaxsize];
 extern int open_folder(folder_st* folder,char *folder_name,char *index_name,char *strings_name);
 extern void close_folder(folder_st *folder);
 
-extern int read_rek(folder_st *folder,int i,rek_st *mail);
+//extern int read_rek(folder_st *folder,int i,rek_st *mail);
 extern int write_rek(folder_st *folder,int i,rek_st *mail);
 
 extern void open_mail(folder_st *folder,rek_st *mail);
