@@ -13,7 +13,7 @@
 #define LINEWRAP 90
 #define cim_temp_nev ".tmp.libMail~"
 
-#define STRINGS_MALLOC 0x2000
+#define STRINGS_MALLOC 0x4000
 #define STRINGS_HASH 1024
 
 char sor[sormaxsize];
@@ -111,14 +111,14 @@ static int write_strings(char *str){
 int open_folder(folder_st* folder,char *folder_name,char *index_name,char *strings_name){
   if(!folder) return 1;
   if(!folder_name) return 1;
-  if(!(folder->file_folder=fopen(folder_name,"rb"))) return 1;
+  if(!(folder->file_folder=fopen(folder_name,"rb"))) return 1;/* no such folder*/
 
-  if(!(folder->file_index=fopen(index_name,"ab+"))) return 2;
+  if(!(folder->file_index=fopen(index_name,"ab+"))) return 2;/* create index*/
   fclose(folder->file_index);
-  if(!(folder->file_index=fopen(index_name,"rb+"))) return 2;
+  if(!(folder->file_index=fopen(index_name,"rb+"))) return 3;/* write to index*/
   fseek(folder->file_index,0,SEEK_END);
   folder->mail_db=ftell(folder->file_index);
-/*  printf("Index size = %d\n",folder->mail_db); */
+  printf("Index size = %d\n",folder->mail_db);
   if(folder->mail_db % sizeof(rek_st)) return 4; /* invalid filesize */
   folder->mail_db/=sizeof(rek_st);
   printf("mail_db=%d\n",folder->mail_db);
@@ -173,9 +173,9 @@ if(!eof_jel){ /* van uj level! */
     eol_jel=0;eol_pos=-1;
     do{
       readln_sor(); if(eof_jel) break;
-      if(strncmp(sor,"From:",5)==0)mail.from=write_strings(iso(sor+6));
-      if(strncmp(sor,"To:",3)==0)mail.to=write_strings(iso(sor+4));
-      if(strncmp(sor,"Subject:",3)==0)mail.subject=write_strings(iso(sor+9));
+      if(strncmp(sor,"From:",5)==0)mail.from=write_strings(iso(sor+5));
+      if(strncmp(sor,"To:",3)==0)mail.to=write_strings(iso(sor+3));
+      if(strncmp(sor,"Subject:",8)==0)mail.subject=write_strings(iso(sor+8));
     }while(!eol_jel && sor[0]);
     mail.msize=puffer_pos+puffer_mut;
     do{
@@ -184,7 +184,11 @@ if(!eof_jel){ /* van uj level! */
     }while(folder->mfs!=MFS_INBOX || strncmp(sor,"From ",5) );
     mail.msize=sor_pos-mail.msize;
     if((mail.size=sor_pos-mail.pos)){
-      fwrite(&mail,sizeof(rek_st),1,folder->file_index);
+      fflush(folder->file_index);
+      if(1!=fwrite(&mail,sizeof(rek_st),1,folder->file_index)){
+        printf("error writting to index file!\n");
+        perror("hiba");
+      }
       ++folder->mail_db;
     }
     if(eol_jel) ++sor_pos;
@@ -197,6 +201,8 @@ if(!eof_jel){ /* van uj level! */
 #endif
 #endif
 }
+
+  printf("mail_db=%d (after reading new)\n",folder->mail_db);
 
   folder->strings_size=strings_pos;
   folder->folder_size=sor_pos;
@@ -211,10 +217,16 @@ int load_folder(folder_st *folder){
   folder->f_mails=malloc(sizeof(rek_st) * folder->mail_db);
   folder->f_strings=malloc(folder->strings_size);
   if(!folder->f_strings || !folder->f_mails) return 1;
+
+  fflush(folder->file_index);
+  fflush(folder->file_strings);
+
   rewind(folder->file_index);
-  if(folder->mail_db!=fread(folder->f_mails,sizeof(rek_st),folder->mail_db,folder->file_index)) return 1;
+  if(folder->mail_db!=fread(folder->f_mails,sizeof(rek_st),folder->mail_db,folder->file_index))
+    { printf("load_folder: index read error");return 1;}
   rewind(folder->file_strings);
-  if(folder->strings_size!=fread(folder->f_strings,1,folder->strings_size,folder->file_strings)) return 1;
+  if(folder->strings_size!=fread(folder->f_strings,1,folder->strings_size,folder->file_strings))
+    { printf("load_folder: strings read error");return 1;}
   return 0;
 }
 
