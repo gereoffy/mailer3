@@ -574,6 +574,25 @@ do{
     goto ujra;
   }
 
+  /* Copy folder data */
+  if(gomb=='{'){
+    char nev[256];
+    strcpy(nev,"selected-mail-folder");
+    box_input(10,60,"Save as:",nev);
+    if(gomb==KEY_ENTER){
+      FILE* f=fopen(nev,"wb");
+      if(f){
+        int i=m_step(-1,1);
+	while(i<MAIL_DB){
+	  save_mail_source_file(folder,&folder->f_mails[i],f);
+          i=m_step(i,1);
+	}
+	fclose(f);
+      }
+    }
+    goto ujra;
+  }
+
   /* Delete selected */
   if(gomb=='d'){
     int i=-1;
