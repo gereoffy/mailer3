@@ -620,10 +620,10 @@ close_folder(folder);
 
 truncate(foldername_idx,sizeof(rek_st)*MAIL_DB);
 
+if(gomb=='R') goto restart;
+
 unlink(temp_nev);
 unlink(cim_temp_nev);
-
-if(gomb=='R') goto restart;
 return 0;
 }
 
