@@ -175,7 +175,7 @@ char* hexa2ascii(char* sor,int ulflag)
       int b=hexjegy(sor[i+1]);
       if(a!=-1 && b!=-1){ c=(a<<4)+b; i+=2;}
     }
-    if(c==10 || c==13) c=' ';
+    //if(c==10 || c==13) c=' ';
     sor2[j++]=c;
   }
   sor2[j]=0;
