@@ -1,5 +1,5 @@
 
-GyikSoft Mailer for UNIX  v3.6    (C) 1997-2001 by A'rpi & Pilu of ESP-team
+GyikSoft Mailer for UNIX  v3.7    (C) 1997-2001 by A'rpi & Pilu of ESP-team
 ========================  ====
 
 This is a simple e-mail reader program for UNIX, based on the original DOS
@@ -33,13 +33,13 @@ History:
 2. DOS version by A'rpi       - written in Borland Pascal, still developed
 3. UNIX version v1.0 by Pilu  - some a part of pascal sources translated to C
 4. UNIX version v2.0 by A'rpi - developed in ANSI C, under LINUX
-5. UNIX version v3.0 by A'rpi - most parts is rewritten (libMail, TermIO...)
+5. UNIX version v3.0 by A'rpi - most parts are rewritten (libMail, TermIO...)
 
 Usage:
 ~~~~~~
 ESC	- quit
 ENTER	- read formatted mail 
-* ESC+ENTER - read raw mail source  (debug)
+ESC+ENTER - read raw mail source  (debug)
  c	- compose new mail
  r	- reply
  f	- forward
@@ -58,14 +58,15 @@ ENTER	- read formatted mail
  H 	- toggle displaying mail's Header (default: off)
  P      - toggle auto quoted-Printable
  I      - toggle case-Insensitive search
+ W      - toggle line-Wrapping (default: On)
 
 *=not yet implemented
 
 Future:  (not yet implemented)
 ~~~~~~~
 - send attachments
-- delete mail
-- save mail
+- compress folder (really delete mails)
+- save mail, save non-base64 attachments
 - selection  (F7,X,Sh+F7,P)
 
 Far future:
@@ -73,9 +74,9 @@ Far future:
 - aliases, hotkeys
 - mail-lists (HIX, listserv digest, majordomo digest) as folder
 - select folder
-- del,copy,move mail
+- del,copy,move mail between folders
 - filters
 - HTML support
 - Internal reader prog
 
-Send bugreports and ideas to <arpi@esp-team.scene.hu>
+Send patches, bugreports and ideas to <arpi@mplayerhq.hu>
