@@ -1,7 +1,14 @@
 ChangeLog: (sorry, it's hungarian...)
 ==========
 
-2000/09/15-16.   [LINUX,IRIX]           v3.2
+2001/04/04.   [LINUX,AIX]           v3.5
+~~~~~~~~~~~
+- build .idx+.str filenames from folder filename (for $MAIL: MAIL.[idx|str])
+- esc+enter: view mail source
+- new menu to choose from/cc/reply-to/sender/x-sender address (Reply)
+- include In-Reply-To: field in replies
+
+2000/09/15-16.   [LINUX]           v3.2
 ~~~~~~~~~~~~~~
 - uj search rutin, atirva hogy s/n/S/N ezt hasznalja
 - delete mail ('d','D',DEL), egyelore csak az index-bol torli,
