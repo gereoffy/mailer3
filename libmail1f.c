@@ -281,6 +281,7 @@ if(!eof_jel){ /* have new mail */
   }while(!eof_jel);
 
   fflush(folder->file_index);
+  fflush(folder->file_strings);
   folder->folder_size=sor_pos;
 
 #ifdef STRINGS_HASH
