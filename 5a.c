@@ -6,39 +6,42 @@
 #include "config.h"
 #include "term1.c"
 
-#define VERSION "GyikSoft Mailer for UNIX v3.7beta by Arpi/ESP-team (http://esp-team.scene.hu)\n\n"
+#define VERSION "GyikSoft Mailer for UNIX v3.99pre1 by Arpi/ESP-team (http://esp-team.scene.hu)\n\n"
 
 /******************************************************************************/
 
 /* kirajzolando sorok szama: */
 #define YS (term_ys-2)
-int from_mod=2;
-int y0=0,xx=0,yy=0;
-int last_yy,last_y0=-1;
-int auto_refresh=0;
-int skip_header=1;
-int linewrap=1;
-char new_mails=0;
-char last_new_mails;
+static int from_mod=2;
+static int y0=0,xx=0,yy=0;
+static int last_yy,last_y0=-1;
+static int auto_refresh=0;
+static int skip_header=1;
+static int linewrap=1;
+static char new_mails=0;
+static char last_new_mails;
 
 // search:
-char search_str_input[256];
-char search_str[256];
-char search_ustr[256];
-int search_flags=0;
-int case_insensitive=1;
+static char search_str_input[256];
+static char search_str[256];
+static char search_ustr[256];
+static int search_flags=0;
+static int case_insensitive=1;
 
 // compose:
-char _from[1024];
-char _to[1024];
-char _subject[1024];
-char _date[1024];
+static char _from[1024];
+static char _to[1024];
+static char _subject[1024];
+static char _date[1024];
 
 /******************************************************************************/
-int menu_tipus=-1;
-int menu_yy=0;
-int menu_y0=0;
-int refresh_time;
+static int menu_tipus=-1;
+static int menu_yy=0;
+static int menu_y0=0;
+static int refresh_time;
+
+static folder_st default_folder={MFS_INBOX,0};
+static folder_st *folder=&default_folder;
 
 #define MENUTYPE_ADDRBOOK 1
 #define MENUTYPE_ADDRLIST 2
@@ -66,7 +69,7 @@ int refresh_time;
 #define MAIL_DB (folder->mail_db)
 #define UPDATE_REK(i) write_rek(folder,i,&folder->f_mails[i])
 
-void redraw(){
+static void redraw(){
 int i;
   /* printf("\x1B[2J"); */  /* clrscr */
   int xs1=term_xs/2-20;
@@ -112,7 +115,7 @@ int i;
                 		--==>    V I E W   <==--
 *******************************************************************************/
 
-void exec2(char* s1,char *s2){
+static void exec2(char* s1,char *s2){
   char cmd[sormaxsize];
   strcpy(cmd,s1);strcat(cmd,s2);
 /*  printf("Executing '%s'\n",cmd);waitkey(); */
@@ -123,7 +126,7 @@ void exec2(char* s1,char *s2){
   clrscr();refresh();
 }
 
-void view_mail(rek_st *mail){
+static void view_mail(rek_st *mail){
 int i;
   open_mail(folder,mail);
   if(mime_db<1) return;
@@ -163,7 +166,7 @@ int i;
                 		--==>    C O M P O S E   <==--
 *******************************************************************************/
 
-void write_signature(FILE *f2){
+static void write_signature(FILE *f2){
 FILE *fs;
 int c;
   if((fs=fopen(SIGNATURE_FILE,"rb"))){
@@ -172,7 +175,7 @@ int c;
   }
 }
 
-void compose_redraw(){
+static void compose_redraw(){
   draw_box(5,3,70,5);
   gotoxy(7,4);printf("From:");
   gotoxy(7,5);printf("To:");
@@ -186,7 +189,7 @@ void compose_redraw(){
   refresh();
 }
 
-int compose(){
+static int compose(){
  while(1){
   clrscr();refresh();
   compose_redraw();box_input(10,60,"From:",_from); if(gomb==KEY_ESC)return 0;
@@ -234,7 +237,7 @@ int compose(){
 #define SEARCHF_TO 2
 #define SEARCHF_SUBJ 4
 
-void init_search(char *s){
+static void init_search(char *s){
 char *p=s;
  if(*p==92){
    ++p;search_flags=0xFF;
@@ -260,7 +263,7 @@ char *p=s;
  upcstr(search_ustr,search_str);
 }
 
-int check_match(int i){
+static int check_match(int i){
   if(search_flags&(SEARCHF_FROM)){
     if(search_flags&(SEARCHF_FROM<<8)){
       if(strstr(upcstr(sor2,M_FROM(i)),search_ustr)) return 1;
@@ -289,7 +292,7 @@ int check_match(int i){
             		--==>    D E L   <==--
 *******************************************************************************/
 
-void delete_mails(){
+static void delete_mails(){
 int i=0,j;
   while(i<MAIL_DB && !(M_FLAGS(i)&MAILFLAG_DEL)) i++;
   if(i>=MAIL_DB) return; // nincs mit torolni
@@ -321,18 +324,7 @@ int i=0,j;
                 		--==>    M A I N   <==--
 *******************************************************************************/
 
-void save_mail_source(char *fnev,rek_st *mail){
-FILE *f=fopen(fnev,"wb");
-void *p=malloc(mail->size);
-if(!f || !p) return;
-folder_seek(folder,mail->pos);
-fread(p,1,mail->size,folder->file_folder);
-fwrite(p,1,mail->size,f);
-fclose(f);
-free(p);
-}
-
-void fatal(int n,char *s){
+static void fatal(int n,char *s){
   fprintf(stderr,"mail: FATAL ERROR - %s\n",s);
   exit(n);
 }
@@ -367,7 +359,6 @@ restart:
   i=open_folder(folder,foldername,foldername_idx,foldername_str);
   printf("open_folder return value=%d\n",i);
   if(i) fatal(1,"Cannot open folder/index");
-  if(load_folder(folder)) fatal(2,"Cannot load index");
   folder_size=filesize(foldername); //folder->folder_size;
   if(folder_size!=folder->folder_size){
     printf("foldersize=%d != filesize=%d\n",folder->folder_size,folder_size);
@@ -384,7 +375,7 @@ getch2_enable();
 //printf("key1=%d\n",waitkey());
 //printf("key2=%d\n",waitkey());
 //printf("key3=%d\n",waitkey());
-/*waitkey();*/
+//waitkey();
 
 
 //clrscr();
@@ -436,7 +427,7 @@ do{
   }
 
   if(gomb==KEY_ESC_ENTER){
-    save_mail_source(temp_nev,&folder->f_mails[yy]);
+    save_mail_source(folder,&folder->f_mails[yy],temp_nev);
     exec2(EDITOR_CMD,temp_nev);
     goto ujra;
   }
@@ -615,7 +606,6 @@ if(gomb!='R'){
 delete_mails();
 
 /* the end */
-free_folder(folder);
 close_folder(folder);
 
 truncate(foldername_idx,sizeof(rek_st)*MAIL_DB);
