@@ -604,18 +604,43 @@ do{
     }
     goto ujra;
   }
+
+  /* Select for deletion */
+  if(gomb==KEY_INSERT){
+    M_FLAGS(yy)^=MAILFLAG_SELECTED;
+    UPDATE_REK(yy);
+    if(m_step(yy,1)<MAIL_DB) yy=m_step(yy,1); else
+    if(m_step(yy,-1)>=0) yy=m_step(yy,-1); else yy=0;
+    goto ujra;
+  }
   
   /* (un)select messages */
   if(gomb=='-' || gomb=='+' || gomb=='*'){
     int i=-1;
     int mode=gomb;
+    if(filter_selected==1 && mode=='*'){
+      // special case! 'S' mode + * => unselect all & go to 'S+' mode
+      while((i=m_step(i,1))<MAIL_DB){
+	M_FLAGS(i)&=~MAILFLAG_SELECTED;
+      }
+      filter_selected=0;
+      goto ujra;
+    }
     box_input(10,60,"Search:",search_str_input); if(gomb==KEY_ESC) goto ujra;
     init_search(search_str_input);
     while((i=m_step(i,1))<MAIL_DB){
       int ret=(check_match(i)) ? MAILFLAG_SELECTED : 0;
       switch(mode){
       case '-': M_FLAGS(i)&=~ret; break;
-      case '+': M_FLAGS(i)|=ret; break;
+      case '+': 
+        if(filter_selected==1){
+	  // show selected items only: do AND
+	  M_FLAGS(i)&=(~MAILFLAG_SELECTED) | ret;
+	} else {
+	  // show nonselected items too: do OR
+	  M_FLAGS(i)|=ret;
+	}
+        break;
       case '*': M_FLAGS(i)^=ret; break;
       }
     }
@@ -757,6 +782,23 @@ do{
       }
     goto ujra2;
   }  
+
+  /* ctrl+F = SELECT MAILS WITH SAME From: */
+  if(gomb=='F'-64){
+    int i=-1;
+      strcpy(sor2,cim_ertelmezo(M_FROM(yy),1));
+      while((i=m_step(i,1))<MAIL_DB){
+        if( strcmp(sor2,cim_ertelmezo(M_FROM(i),1))==0 ) {
+          //yy=i;
+	  M_FLAGS(i)|=MAILFLAG_SELECTED;
+        } else {
+	  //if(filter_selected==1) 
+	  M_FLAGS(i)&=~MAILFLAG_SELECTED;
+	}
+      }
+    filter_selected=1;
+    goto ujra2;
+  }
 
   /* p = SEARCH FORWARD NEXT SAME From: */
   if(gomb=='p'){
