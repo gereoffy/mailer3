@@ -11,6 +11,7 @@
 #define MAILFLAG_REPLY 2
 #define MAILFLAG_NEW 8
 #define MAILFLAG_ATTACH 16
+#define MAILFLAG_DEL 32
 
 #define MIMEFLAG_PQ 1
 #define MIMEFLAG_ISO 2
