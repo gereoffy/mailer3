@@ -20,18 +20,18 @@ int skip_header=1;
 char new_mails=0;
 char last_new_mails;
 
-/* search: */
+// search:
 char search_str_input[256];
 char search_str[256];
 char search_ustr[256];
 int search_flags=0;
 int case_insensitive=1;
 
-/* compose: */
-char _from[80];
-char _to[80];
-char _subject[80];
-char _date[80];
+// compose:
+char _from[1024];
+char _to[1024];
+char _subject[1024];
+char _date[1024];
 
 /******************************************************************************/
 int menu_tipus=-1;
