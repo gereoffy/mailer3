@@ -86,30 +86,38 @@ int xs=strlen(t1);if(strlen(t2)>xs)xs=strlen(t2);
 /******************************************************************************/
 
 void input(int x0,int y0,int xs,char* hova){
+int xbase=0;
 int x=0;
 char fl1=0;
-char sor[160];
+char sor[1024];
   strcpy(sor,hova);
   do{
-/*    gotoxy(1,1);printf("%d ",x);  */
-    gotoxy(x0,y0);printf("%-*s",xs,sor);gotoxy(x0+x,y0);refresh();
+    gotoxy(1,1);printf("%d/%d (%d) ",x,xs,strlen(sor));
+    gotoxy(x0,y0);printf("%-*.*s",xs,xs,sor+xbase);gotoxy(x0+x,y0);refresh();
     waitkey();
     if((gomb>=32)&&(gomb<126)){     /* insert char */
-      if(strlen(sor)<xs){
-	      if(!fl1) sor[1]=0; else memmove(sor+x+1,sor+x,strlen(sor)-x+1);
-        sor[x++]=gomb;
-      }
+//      if(strlen(sor)<xs){
+	      if(!fl1) sor[1]=0; else memmove(sor+x+xbase+1,sor+x+xbase,strlen(sor)-x-xbase+1);
+        sor[xbase+x]=gomb;
+        gomb=KEY_RIGHT; // trick
+//      }
     }
     fl1=1;
-    if(gomb==KEY_LEFT && x>0) --x;
-    if(gomb==KEY_HOME) x=0;
-    if(gomb==KEY_END) x=strlen(sor);
-	  if(gomb==KEY_RIGHT && (x<xs-1) && x<strlen(sor) ) ++x;
-    if((gomb==KEY_BS)&&(x>0)){  /* backspace */
-      memmove(sor+x-1,sor+x,strlen(sor)-x+1);	--x;
+    if((gomb==KEY_BS)&&(x+xbase>0)){  /* backspace */
+      memmove(sor+x+xbase-1,sor+x+xbase,strlen(sor)-x-xbase+1);
+      gomb=KEY_LEFT; //	--x;
     }
-    if((gomb==KEY_DEL)&&(x<strlen(sor))){  /* DEL */
-      memmove(sor+x,sor+x+1,strlen(sor)-x+1);
+    if(gomb==KEY_LEFT) if(x>0) --x; else if(xbase>0) --xbase;
+    if(gomb==KEY_HOME) x=xbase=0;
+    if(gomb==KEY_END){
+        x=strlen(sor);
+        if(x>=xs-1){ x=xs-1; xbase=strlen(sor)-x;}
+    }
+    if(gomb==KEY_RIGHT && x+xbase<strlen(sor)){
+        if(x>=xs-1) ++xbase; else ++x;
+    }
+    if((gomb==KEY_DEL)&&(x+xbase<strlen(sor))){  /* DEL */
+      memmove(sor+x+xbase,sor+x+xbase+1,strlen(sor)-x-xbase+1);
     }
     if(gomb==KEY_F+3) return;
     if(gomb==KEY_ENTER){strcpy(hova,sor);return;}
