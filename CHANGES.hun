@@ -1,6 +1,16 @@
 ChangeLog: (sorry, it's hungarian...)
 ==========
 
+2000/09/15-16.   [LINUX,IRIX]           v3.2
+~~~~~~~~~~~~~~
+- uj search rutin, atirva hogy s/n/S/N ezt hasznalja
+- delete mail ('d','D',DEL), egyelore csak az index-bol torli,
+  a folderbol nem (azt majd a compress_folder fogja)
+  Utolso level(ek) torlesenel bugzik emiatt :(
+- Reply flag-et csak akkor allitja be ha tenyleg valaszoltunk,
+  ha ESC-el kilepunk akkor nem!
+- IRIX fixek (// -> /* */)
+
 2000/09/14.   [LINUX,IRIX]      v3.1
 ~~~~~~~~~~~
 - portolas sgi irix 5-re (tcgetattr/tcsetattr helyett ioctl() hivasok)
