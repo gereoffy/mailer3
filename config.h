@@ -1,4 +1,4 @@
-/*  GyikSoft Mailer for UNIX v2.1  Compile-time Configuration File
+/*  GyikSoft Mailer for UNIX v3.x  Compile-time Configuration File
     (C) 1999 A'rpi/ESP-team
 */
 
@@ -15,6 +15,8 @@ char __from[]="Arpi <arpi@banki1.banki.hu>";
 /* >>> Filenames: <<< */
 #define ADDRESS_BOOK_FILE "address_book.txt"
 #define SIGNATURE_FILE "signature.txt"
+
+#define COPYSELF "Copyself"
 
 char temp_nev[]="tempfile1.tmp";
 char cim_temp_nev[]="tempfile2.tmp";
