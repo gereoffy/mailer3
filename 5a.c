@@ -97,10 +97,11 @@ int i;
   int xs1=term_xs/2-20;
   int xs2=term_xs-xs1-13;
   int y=y0;
+  int g_y=1;
   for(i=0;i<YS;i++){
-   if((last_y0!=y0)||(y==yy)||(y==last_yy)||1){ 
+   if((last_y0!=y0)||(y==yy)||(y==last_yy)){ 
     gotoxy(0,i+2);
-    if(yy==y) set_color(7); else set_color(0);
+    if(yy==y){ set_color(7); g_y=i+2; } else set_color(0);
 
     if(y<MAIL_DB)
 /*      printf("%-28.28s %8ld  %-.40s\x1B[K\n",  */
@@ -118,8 +119,8 @@ int i;
 	    );
     else
       printf("\x1B[K\n");
-    y=m_step(y,1);
    }
+   y=m_step(y,1);
   }
   last_y0=y0;last_yy=yy;
 
@@ -132,7 +133,7 @@ int i;
     case_insensitive?'I':'i'/*, redrawcnt++*/);
   if(new_mails){gotoxy(term_xs-4,0);printf("!%d!",new_mails);}
   
-  gotoxy(0,yy-y0+2);
+  gotoxy(0,g_y);
   refresh();
  
 }
