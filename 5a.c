@@ -81,12 +81,13 @@ int i;
 
     if((y0+i)<MAIL_DB)
 /*      printf("%-28.28s %8ld  %-.40s\x1B[K\n",  */
-      printf("%c %-*.*s %8d %-*.*s\n",
+      printf("%c%c%-*.*s %8d %-*.*s\n",
         (M_FLAGS(y0+i)&MAILFLAG_DEL) ? 'D' :
         (M_FLAGS(y0+i)&MAILFLAG_REPLY) ? 'R' :
           ((M_FLAGS(y0+i)&MAILFLAG_READ) ? 'r' :
             ((M_FLAGS(y0+i)&MAILFLAG_NEW) ? '!' : ' ')
           ),
+	  ((M_FLAGS(y0+i)&MAILFLAG_ATTACH) ? '+' : ' '),
         xs1,xs1,strofs2(cim_ertelmezo(M_FROM(y0+i),from_mod),xx),
 		    M_MSIZE(y0+i),
 		    xs2,xs2,strofs2(M_SUBJ(y0+i),xx)
