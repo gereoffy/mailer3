@@ -224,7 +224,7 @@ static int parse_mail(folder_st* folder,rek_st* mail){
       if(strncasecmp(sor,"From:",5)==0)mail->from=write_strings(folder,nyir2(sor2,iso(sor+5))); else
       if(strncasecmp(sor,"To:",3)==0)mail->to=write_strings(folder,nyir2(sor2,iso(sor+3))); else
       if(strncasecmp(sor,"Subject:",8)==0)mail->subject=write_strings(folder,nyir2(sor2,iso(sor+8))); else
-      if(strncasecmp(sor,"List-",5)==0 || strncasecmp(sor,"X-List:",7)==0 ||
+      if(strncasecmp(sor,"List-",5)==0 || strncasecmp(sor,"X-List:",7)==0 || strncasecmp(sor,"X-Listname:",11)==0 ||
          strncasecmp(sor,"Precedence: list",16)==0 || strncasecmp(sor,"Mailing-List:",13)==0)
 	mail->flags|=MAILFLAG_LIST;
     }while(!eol_jel && sor[0]);
