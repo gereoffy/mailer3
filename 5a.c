@@ -73,6 +73,7 @@ static int filter_attach=0;
 static int filter_deleted=0;
 static int filter_search=0;
 static int filter_extra=0;
+static int filter_list=0;
 
 static int check_match(int i);
 
@@ -89,6 +90,8 @@ static int m_step(int old,int dist){
     } else if(filter_deleted==1 || !(M_FLAGS(old)&MAILFLAG_DEL)){
       if(!filter_extra || M_FLAGS(old)&MAILFLAG_EXTRA)
       if(!filter_attach || M_FLAGS(old)&MAILFLAG_ATTACH)
+      if(!filter_list || (filter_list==1 && M_FLAGS(old)&MAILFLAG_LIST) ||
+         (filter_list==2 && !(M_FLAGS(old)&MAILFLAG_LIST)))
 	--dist;
     }
     }
@@ -479,6 +482,11 @@ do{
   /* Select filtering */
   if(gomb=='D'){
     filter_deleted=(filter_deleted+1)%3;
+    yy=0;
+    goto ujra;
+  }
+  if(gomb=='L'){
+    filter_list=(filter_list+1)%3;
     yy=0;
     goto ujra;
   }
