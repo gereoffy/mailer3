@@ -6,7 +6,7 @@
 #include "config.h"
 #include "term1.c"
 
-#define VERSION "GyikSoft Mailer for UNIX v3.5 by Arpi/ESP-team (http://esp-team.scene.hu)\n\n"
+#define VERSION "GyikSoft Mailer for UNIX v3.7beta by Arpi/ESP-team (http://esp-team.scene.hu)\n\n"
 
 /******************************************************************************/
 
@@ -17,6 +17,7 @@ int y0=0,xx=0,yy=0;
 int last_yy,last_y0=-1;
 int auto_refresh=0;
 int skip_header=1;
+int linewrap=1;
 char new_mails=0;
 char last_new_mails;
 
@@ -95,10 +96,11 @@ int i;
 
   /* a STATUSZ-sor kiirasa legfelulre: */
   set_color(0); gotoxy(0,0);
-  printf("%d/%d  Term: %dx%d  Pos=%d  Size=%d  Flags=%c%c%c%c\x1B[K",
+  printf("%d/%d  Term: %dx%d  Pos=%d  Size=%d  Flags=%c%c%c%c%c\x1B[K",
     yy+1,MAIL_DB,term_xs,term_ys,M_POS(yy),M_SIZE(yy),
     '0'+from_mod,(default_mimeflags&MIMEFLAG_PQ)?'P':'p',
-    skip_header?'h':'H',case_insensitive?'I':'i'/*, redrawcnt++*/);
+    skip_header?'h':'H', linewrap?'W':'w',
+    case_insensitive?'I':'i'/*, redrawcnt++*/);
   if(new_mails){gotoxy(term_xs-4,0);printf("!%d!",new_mails);}
   
   gotoxy(0,yy-y0+2);
@@ -132,7 +134,7 @@ int i;
       if(gomb==KEY_ENTER){
         FILE* f2=fopen(temp_nev,"wt");
         if(f2){
-          save_part(folder,menu_yy,f2,"",skip_header);
+          save_part(folder,menu_yy,f2,"",skip_header,linewrap);
           fclose(f2);
           exec2(EDITOR_CMD,temp_nev);
         }
@@ -357,6 +359,8 @@ char *foldername_str;
       foldername_str="MAIL.str";
   }
 
+load_termcap(NULL);
+
 restart:
 { int i;
   printf("Reading folder...\n");
@@ -364,14 +368,17 @@ restart:
   printf("open_folder return value=%d\n",i);
   if(i) fatal(1,"Cannot open folder/index");
   if(load_folder(folder)) fatal(2,"Cannot load index");
-  folder_size=folder->folder_size;
+  folder_size=filesize(foldername); //folder->folder_size;
+  if(folder_size!=folder->folder_size){
+    printf("foldersize=%d != filesize=%d\n",folder->folder_size,folder_size);
+    abort();
+  }
 }
 
 printf("mail_db=%d  size=%d\n",folder->mail_db,folder->folder_size);
 last_new_mails=new_mails;
 
 /***************** BEGIN ************************/
-load_termcap(NULL);
 getch2_enable();
 
 //printf("key1=%d\n",waitkey());
@@ -380,7 +387,7 @@ getch2_enable();
 /*waitkey();*/
 
 
-clrscr();
+//clrscr();
 
 yy=MAIL_DB-1;
 
@@ -488,7 +495,7 @@ do{
 	    box_message2("Include this part? (Y/N)",mime_parts[i].name);
             waitkey(); if(gomb!='y') continue;
           }
-          save_part(folder,i,f2,reply?"> ":"",skip_header);
+          save_part(folder,i,f2,reply?"> ":"",skip_header,linewrap);
         }
       }
       if(reply) write_signature(f2);
@@ -514,6 +521,8 @@ do{
   if(gomb=='P'){ default_mimeflags^=MIMEFLAG_PQ; goto ujra2; }
   /* H = TOGGLE skip-header MODE */
   if(gomb=='H'){ skip_header^=1; goto ujra2; }
+  /* W = TOGGLE line wrapping MODE */
+  if(gomb=='W'){ linewrap^=1; goto ujra2; }
   /* I = TOGGLE case-insensitive MODE */
   if(gomb=='I'){ case_insensitive^=1; goto ujra2; }
 
@@ -580,6 +589,10 @@ do{
 
 }while(gomb!=KEY_ESC && gomb!='R');
 
+clrscr();
+getch2_disable();
+/***************** END ************************/
+
 #if 1
 if(gomb!='R'){
   int i;
@@ -589,10 +602,6 @@ if(gomb!='R'){
   }
 }
 #endif
-
-clrscr();
-getch2_disable();
-/***************** END ************************/
 
 delete_mails();
 
