@@ -463,6 +463,8 @@ do{
   if(gomb=='U'){
     int i;
     int cnt=0;
+    clrscr();refresh();
+    full_hash_strings(folder);
     for(i=0;i<MAIL_DB;i++){
       rek_st old=folder->f_mails[i];
       if(upgrade_rek(folder,&old)>0 && 
@@ -470,12 +472,13 @@ do{
 	folder->f_mails[i]=old;
         UPDATE_REK(i);
         ++cnt;
-	gotoxy(1,1);printf("[Updated: %d]  ",cnt);refresh();
+	printf("[Updated: %d/%d]  \r",cnt,i);
+	//gotoxy(1,1);printf("[Updated: %d/%d]  ",cnt,i);refresh();
       }
     }
     sprintf(sor,"Records changed: %d",cnt);
     box_message(sor); waitkey();
-    goto ujra;
+    gomb='R'; //goto ujra;
   }
 
   /* COMPOSE */ 
