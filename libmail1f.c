@@ -10,7 +10,6 @@
 #include "libmail.h"
 
 #define PUFFSIZE 0x4000
-#define LINEWRAP 90
 #define cim_temp_nev ".tmp.libMail~"
 
 #define STRINGS_MALLOC 0x4000
@@ -51,11 +50,8 @@ int write_rek(folder_st *folder,int i,rek_st *mail){
 static int re_malloc(char **ptr,int oldsize,int newsize){
   void *newp;
   newsize&=(~15);
-  newp=malloc(newsize);
   printf("Reallocating STRINGS memory  %d -> %d\n",oldsize,newsize);
-  if(!newp) return oldsize;
-  memcpy(newp,*ptr,oldsize);
-  free(*ptr);
+  newp=realloc(*ptr,newsize);
   *ptr=newp;
   return newsize;
 }
@@ -116,8 +112,10 @@ static int write_strings(char *str){
 int open_folder(folder_st* folder,char *folder_name,char *index_name,char *strings_name){
   if(!folder) return 1;
   if(!folder_name) return 1;
+//  if(folder->file_folder){ printf("\n\nfile_folder leak!  \n");abort();}
   if(!(folder->file_folder=fopen(folder_name,"rb"))) return 1;/* no such folder*/
 
+//  if(folder->file_index){ printf("\n\nfile_index leak!  \n");abort();}
   if(!(folder->file_index=fopen(index_name,"ab+"))) return 2;/* create index*/
   fclose(folder->file_index);
   if(!(folder->file_index=fopen(index_name,"rb+"))) return 3;/* write to index*/
@@ -135,6 +133,7 @@ int open_folder(folder_st* folder,char *folder_name,char *index_name,char *strin
   }
   if(folder_seek(folder,sor_pos)){ printf("Cannot seek folder to %d\n",sor_pos); return 6;}
 
+//  if(folder->file_strings){ printf("\n\nfile_strings leak!  \n");abort();}
   if(!(folder->file_strings=fopen(strings_name,"ab+"))) return 3;
   fclose(folder->file_strings);
   if(!(folder->file_strings=fopen(strings_name,"rb+"))) return 3;
@@ -151,7 +150,7 @@ int open_folder(folder_st* folder,char *folder_name,char *index_name,char *strin
   puffer_update();
   sor_pos=puffer_pos+puffer_mut;
 
-if(!eof_jel){ /* van uj level! */
+if(!eof_jel){ /* have new mail */
 
 #ifdef STRINGS_MALLOC
   strings=malloc((strings_pos+STRINGS_MALLOC)&(~15));
@@ -172,10 +171,12 @@ if(!eof_jel){ /* van uj level! */
 
   mail.date=0;
   do{
+    // index new mail:
     mail.pos=sor_pos;
     mail.from=mail.to=mail.subject=0;
     mail.flags=MAILFLAG_NEW;
     eol_jel=0;eol_pos=-1;
+    // parse header:
     do{
       readln_sor(); if(eof_jel) break;
       if(strncmp(sor,"From:",5)==0)mail.from=write_strings(iso(sor+5));
@@ -183,11 +184,13 @@ if(!eof_jel){ /* van uj level! */
       if(strncmp(sor,"Subject:",8)==0)mail.subject=write_strings(iso(sor+8));
     }while(!eol_jel && sor[0]);
     mail.msize=puffer_pos+puffer_mut;
+    // parse body:
     do{
       if(eof_jel || eol_jel) break;
       readln_sor();
     }while(folder->mfs!=MFS_INBOX || strncmp(sor,"From ",5) );
     mail.msize=sor_pos-mail.msize;
+    // store index (only if size!=0)
     if((mail.size=sor_pos-mail.pos)){
       fflush(folder->file_index);
       if(1!=fwrite(&mail,sizeof(rek_st),1,folder->file_index)){
@@ -196,7 +199,7 @@ if(!eof_jel){ /* van uj level! */
       }
       ++folder->mail_db;
     }
-    if(eol_jel) ++sor_pos;
+    if(eol_jel) ++sor_pos; // skip mail separator char (PMM folders)
   }while(!eof_jel);
 
 #ifdef STRINGS_MALLOC
@@ -241,9 +244,9 @@ void free_folder(folder_st *folder){
 }
 
 void close_folder(folder_st *folder){
-  fclose(folder->file_strings);
-  fclose(folder->file_index);
-  fclose(folder->file_folder);
+  fclose(folder->file_strings);folder->file_strings=NULL;
+  fclose(folder->file_index);folder->file_index=NULL;
+  fclose(folder->file_folder);folder->file_folder=NULL;
 }
 
 /*******************************************************************************
@@ -322,6 +325,7 @@ char *data;
       }
 
       if(strcmp(field,"CONTENT-TYPE")==0){
+        // MIME boundary?
         if((i=strpos("BOUNDARY",usor))>=0){
   	      i+=9;i+=strposc(34,sor+i);
 	      j=strposc(34,sor+i);
@@ -333,24 +337,37 @@ char *data;
           }
 	      continue;
         }
-	    if(strstr(usor,"ISO-8859")) mime_parts[mime_db].flags|=MIMEFLAG_ISO;
+	// Encoding?
+	if(strstr(usor,"ISO-8859")) mime_parts[mime_db].flags|=MIMEFLAG_ISO;
+	// Filename?
         if((i=strpos("NAME=",usor))>=0){
           char *p=strchr(&sor[i+6],34);
           if(p) *(p+1)=0; else if((p=strchr(&sor[i+5],';'))) *p=0;
           strncpy2(mime_parts[mime_db].name,&sor[i+5],MIME_MAXLEN);
           continue;
-	    } 
+	}
+	// MIME Type?
         if(strncmp(usor,"CONTENT-TYPE:",13)==0){
           char *p=strchr(&sor[13],';');
           if(p) *p=0;
           strncpy2(mime_parts[mime_db].name,nyir(&sor[13]),MIME_MAXLEN);
         }
-	    continue;
+	continue;
       }
 
+      if(strcmp(field,"CONTENT-DISPOSITION")==0){
+	// Filename?
+        if((i=strpos("FILENAME=",usor))>=0){
+          char *p=strchr(&sor[i+10],34);
+          if(p) *(p+1)=0; else if((p=strchr(&sor[i+9],';'))) *p=0;
+          strncpy2(mime_parts[mime_db].name,&sor[i+9],MIME_MAXLEN);
+          continue;
+	}
+      }
+      
       if(strcmp(field,"CONTENT-TRANSFER-ENCODING")==0){
-	    if(strstr(usor,"QUOTED-PRINTABLE")) mime_parts[mime_db].flags|=MIMEFLAG_PQ;
-	    if(strstr(usor,"BASE64")) mime_parts[mime_db].flags|=MIMEFLAG_B64;
+	if(strstr(usor,"QUOTED-PRINTABLE")) mime_parts[mime_db].flags|=MIMEFLAG_PQ;
+	if(strstr(usor,"BASE64")) mime_parts[mime_db].flags|=MIMEFLAG_B64;
         if(strncmp(field,usor,25)==0)
           strncpy2(mime_parts[mime_db].encoding,nyir(&sor[26]),MIME_MAXLEN);
       }
@@ -404,23 +421,48 @@ if(mime_db>2){
 
 /************************** SAVE_PART *************************************/
 
-void wrap_print(FILE *f2,char *replystr,char* sor){
+void wrap_print(FILE *f2,char *replystr,char* sor,int linewrap){
   unsigned char* p=sor;
+  char* q;
+  int maxlen,wraplen;
 // filter
+// TODO: UTF8 decoder
        while(*p){
            if((*p!=9 && *p<32) || (*p>=127 && *p<224) || *p>254) *p='.';
            ++p;
        }
 // wrap
-        while(strlen(sor)>96){
-          fprintf(f2,"%s%.96s\n",replystr,sor);
-          sor+=96; //memmove(sor,sor+96,strlen(sor)-96+1);
-        }
-        fprintf(f2,"%s%s\n",replystr,sor);
+  do{
+    maxlen=strlen(sor);
+    q=strchr(sor,10); if(q) maxlen=q-sor;
+    q=strchr(sor,13); if(q) if(q-sor<maxlen) maxlen=q-sor;
+    if(linewrap){
+	// IntelliWrap (C) :)
+	wraplen=maxlen;
+	if(sor[0]=='>' || (sor[0]==' ' && sor[1]=='>')){
+	    if(maxlen>100) wraplen=74;
+	} else {
+	    if(maxlen>79) wraplen=74;
+	}
+	if(wraplen<maxlen){
+	    maxlen=wraplen;
+	    while(maxlen>0 && maxlen+12>=wraplen){
+		int c=sor[maxlen];
+		if(c==32 || c==9 || c==',') break;
+		--maxlen;
+	    }
+	}
+    }
+
+    fprintf(f2,"%s%.*s\n",replystr,maxlen,sor);
+    sor+=maxlen;
+    while(sor[0]==10 || sor[0]==13 || sor[0]==' ' || sor[0]==9) ++sor;
+  } while(sor[0]);
+
 }
 
 /*  Writes 'i'th part to file 'f2', using reply prefix 'replystr' */
-void save_part(folder_st *folder,int i,FILE *f2,char *replystr,int skip_header){
+void save_part(folder_st *folder,int i,FILE *f2,char *replystr,int skip_header, int linewrap){
   int b64_jel=(mime_parts[i].flags & MIMEFLAG_B64);
   int header_ok=1;
   FILE *ft2;
@@ -451,8 +493,8 @@ void save_part(folder_st *folder,int i,FILE *f2,char *replystr,int skip_header){
 	     }while(!eol_jel && sor[0]);
 	     rewind(ft2);
 	     while(!feof(ft2)){
-	       fgets(sor,LINEWRAP,ft2);sor[strlen(sor)-1]=0;
-               wrap_print(f2,replystr,sor);
+	       fgets(sor,sormaxsize-16,ft2);sor[strlen(sor)-1]=0;
+               wrap_print(f2,replystr,sor,linewrap);
 	     }
 	     fclose(ft2);
          unlink(cim_temp_nev);
@@ -462,19 +504,30 @@ void save_part(folder_st *folder,int i,FILE *f2,char *replystr,int skip_header){
 
     if(mime_parts[i].flags&MIMEFLAG_PQ){
       if(sor[strlen(sor)-1]=='='){
+        char *p;
         sor[strlen(sor)-1]=0;
         strcat(sor3,hexa2ascii(sor,0));
+	p=strchr(sor3,10);
+	if(!p) p=strchr(sor3,13);
+//	printf("\n****** sor3=%d p=%p  *******\n",strlen(sor3),p);
+//	printf("sor3='%s'\n",sor3);
+	if(p){
+	    // line has pq coded CR/LF - split it!
+	    p[0]=0;++p;
+	    wrap_print(f2,replystr,sor3,linewrap);
+	    memmove(sor3,p,strlen(p)+1);
+	}
       } else {
         strcat(sor3,hexa2ascii(sor,0));
-        wrap_print(f2,replystr,sor3);
+        wrap_print(f2,replystr,sor3,linewrap);
         sor3[0]=0;
       }
     } else {
-        wrap_print(f2,replystr,sor);
+        wrap_print(f2,replystr,sor,linewrap);
     }
 
   }while(!eol_jel);
-  if(sor3[0]) wrap_print(f2,replystr,sor3);
+  if(sor3[0]) wrap_print(f2,replystr,sor3,linewrap);
 }
 
 
