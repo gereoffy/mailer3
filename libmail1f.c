@@ -551,7 +551,7 @@ void save_mail_source(folder_st *folder,rek_st *mail, char *fnev){
 FILE *f=fopen(fnev,"wb");
 void *p=malloc(mail->size);
   if(!f || !p) return;
-  folder_seek(folder,mail->pos);
+  fseek(folder->file_folder,mail->pos,SEEK_SET);
   fread(p,1,mail->size,folder->file_folder);
   fwrite(p,1,mail->size,f);
   fclose(f);
