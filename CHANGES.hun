@@ -1,6 +1,23 @@
 ChangeLog: (sorry, old entries are hungarian...)
 ==========
 
+2003/02/23.   [LINUX]		    v3.99pre2
+~~~~~~~~~~~
+- attachment detection (little '+' sign)
+- bugfix: flush strings file after write (fixes corruption at unclean exit)
+- support for runtime filtering (aka. virtual folders):
+  you can filter for deleted mails, attachments, search match and extra flag
+
+
+2003/02/20.   [LINUX]		    v3.99pre1
+~~~~~~~~~~~
+- support for multi-line Subject: etc headers
+- namespace cleanup: removed some globals, made most stuff 'static'
+- redesign of open_folder+load_folder to open_folder+update_folder, faster 'R'
+- full strings hash support for faster index generation at first-time run
+- record/folder upgrading support (re-idnex without loosing flags)
+
+
 2002/07/11.   [LINUX]		    v3.7
 ~~~~~~~~~~~
 - fixed memory overwrite bug causing sig11 after a while (in load_termcap())
