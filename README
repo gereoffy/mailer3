@@ -54,12 +54,15 @@ ESC+ENTER - read raw mail source  (debug)
  r	- reply
  f	- forward
  
- s	- search backward first
+ s	- search backward first (see also '?')
  S	- search backward next
  n	- search forward first
  N	- search forward next
  p      - find forward mail with same From:
  ctrl+p - find backward mail with same From:
+ 
+ DEL	- delete mail (see 'D')
+ e	- tag as EXTRA (see 'E')
  
 * a	- add to address book
 * F3 / ESC+3 - address book (works only at INPUT lines)
@@ -72,6 +75,11 @@ ESC+ENTER - read raw mail source  (debug)
  
  u	- upgrade properties of current mail
  U	- upgrade properties of all mails in this folder
+ 
+ D	- toggle hide/show/show-only deleted mails
+ A	- toggle show attachments only
+ ?	- toggle show search matches only
+ E	- toggle show extra mails only
 
 *=not yet implemented
 
