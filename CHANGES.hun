@@ -1,6 +1,17 @@
 ChangeLog: (sorry, it's hungarian...)
 ==========
 
+99/08-09/??.   [LINUX]      v3.0
+~~~~~~~~~~~~
+- folder dolgok kulon szedve -> libMail  (ez mar indexel)
+- terminal IO kulon szedve -> getch2.c es term1.c  (mostmar nem kell (N)CURSES)
+- main() resz ujrairva, de sok a cut&paste a 4.c-bol...
+
+
+99/08/19.   [LINUX]      v2.1
+~~~~~~~~~
+- par beallitas (#define) atkerult a config.h-ba
+
 99/07/31.   [LINUX]      v2.0pre3
 ~~~~~~~~~
 - tudja.txt -> README + INSTALL + CHANGES.hun

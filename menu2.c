@@ -2,18 +2,21 @@
 /*                   MIME/Multipart MENU                                      */
 /******************************************************************************/
 
-#define MENUITEMS1(x) mime_parts[x].name
-#define MENUITEMS2(x) mime_parts[x].encoding
+#define MENUITEMS1(x) addr_list_t[x]
+#define MENUITEMS2(x) addr_list_v[x]
 
 /*  Ki:
   0..n  valasztott menupont
   -1    ESC
   -2    mas billentyu (gomb,skod)
 */
-int draw_menu_mimeparts(int ys,int tipus,char keyflag){
+int draw_menu_addrlist(int ys,int tipus,char keyflag){
   int i,x,y,xs,xs1,xs2,ys2;
 
-  if((tipus!=menu_tipus)||(menu_yy>=ys)){menu_yy=0;menu_y0=0;}
+//  if((tipus!=menu_tipus)||(menu_yy>=ys))
+  {menu_yy=0;menu_y0=0;}
+  for(i=0;i<ys;i++) if(strcmp(MENUITEMS1(i),"REPLY-TO")==0){menu_yy=i;break;}
+
   menu_tipus=tipus;
   xs1=10;xs2=0;
   if(ys==0){ MENUITEMS1(0)[0]=0;MENUITEMS2(0)[0]=0;++ys; }
@@ -48,4 +51,6 @@ int draw_menu_mimeparts(int ys,int tipus,char keyflag){
   return(-1);
 }
 
+#undef MENUITEMS2
+#undef MENUITEMS1
 

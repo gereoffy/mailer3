@@ -1,4 +1,2 @@
-
-bye!
 --
-GyikSoft Mailer for UNIX v2.0 user - http://esp.kign.org
+Using GyS-Mailer3 GSM Edition :)

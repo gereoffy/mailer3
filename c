@@ -1,3 +1,2 @@
-gcc -O2 4.c -o a -lcurses
 
-
+gcc -O2 -Wall 5a.c libmail1f.c getch2.c -ltermcap
