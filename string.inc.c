@@ -76,9 +76,9 @@ void get_date(char* _date){
    timer = time(NULL);           /* gets time of day */
    tblock = localtime(&timer);   /* converts date/time to a structure */
    strcpy(_date,asctime(tblock));
+   while(strlen(_date) && _date[strlen(_date)-1]==10) _date[strlen(_date)-1]=0;
    return;
 }
-
 
 /*******************************************************************************
 				    E N D
