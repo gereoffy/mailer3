@@ -6,7 +6,7 @@
 #include "config.h"
 #include "term1.c"
 
-#define VERSION "GyikSoft Mailer for UNIX v3.1 by Arpi/ESP-team (http://esp-team.scene.hu)\n\n"
+#define VERSION "GyikSoft Mailer for UNIX v3.2 by Arpi/ESP-team (http://esp-team.scene.hu)\n\n"
 
 /******************************************************************************/
 
@@ -17,11 +17,17 @@ int y0=0,xx=0,yy=0;
 int last_yy,last_y0=-1;
 int auto_refresh=0;
 int skip_header=1;
-char search_str[256];
-int case_insensitive=1;
 char new_mails=0;
 char last_new_mails;
 
+/* search: */
+char search_str_input[256];
+char search_str[256];
+char search_ustr[256];
+int search_flags=0;
+int case_insensitive=1;
+
+/* compose: */
 char _from[80];
 char _to[80];
 char _subject[80];
@@ -70,6 +76,7 @@ int i;
     if((y0+i)<MAIL_DB)
 /*      printf("%-28.28s %8ld  %-.40s\x1B[K\n",  */
       printf("%c %-*.*s %8d %-*.*s\n",
+        (M_FLAGS(y0+i)&MAILFLAG_DEL) ? 'D' :
         (M_FLAGS(y0+i)&MAILFLAG_REPLY) ? 'R' :
           ((M_FLAGS(y0+i)&MAILFLAG_READ) ? 'r' :
             ((M_FLAGS(y0+i)&MAILFLAG_NEW) ? '!' : ' ')
@@ -175,14 +182,14 @@ void compose_redraw(){
   refresh();
 }
 
-void compose(){
- do{
+int compose(){
+ while(1){
   clrscr();refresh();
-  compose_redraw();box_input(10,60,"From:",_from); if(gomb==KEY_ESC)return;
+  compose_redraw();box_input(10,60,"From:",_from); if(gomb==KEY_ESC)return 0;
 /* uj_to:; */
-  compose_redraw();box_input(10,60,"To:",_to); if(gomb==KEY_ESC)return;
+  compose_redraw();box_input(10,60,"To:",_to); if(gomb==KEY_ESC)return 0;
 /*  if(gomb==KEY_F+3){ addressbook_get(_to); clrscr(); goto uj_to; } */
-  compose_redraw();box_input(10,60,"Subject:",_subject); if(gomb==KEY_ESC)return;
+  compose_redraw();box_input(10,60,"Subject:",_subject); if(gomb==KEY_ESC)return 0;
   exec2(EDITOR_CMD,temp_nev);
   /* redraw(); */
   clrscr();box_message("Are you sure?");
@@ -192,6 +199,7 @@ void compose(){
     fprintf(f_cim,"From: %s\nTo: %s\nSubject: %s\n",_from,_to,_subject);
     fprintf(f_cim,"X-Mailer: " VERSION);
     fclose(f_cim);
+    clrscr();refresh();
     { char xxx[256];
 #ifdef COPYSELF
       printf("Copyself...");fflush(stdout);
@@ -206,11 +214,101 @@ void compose(){
       exec2(xxx,"");
       printf("OK\n");
     }
-    return;
+    return 1;
   }
- }while(1);
+ }
+ return 0;
 }
 
+/*******************************************************************************
+        		--==>    S E A R C H   <==--
+*******************************************************************************/
+
+#define SEARCHF_FROM 1
+#define SEARCHF_TO 2
+#define SEARCHF_SUBJ 4
+
+void init_search(char *s){
+char *p=s;
+ if(*p==92){
+   ++p;search_flags=0xFF;
+ } else {
+  search_flags=0;
+  folyt:
+  switch(*p){
+    case 'F': search_flags|=SEARCHF_FROM<<8;
+    case 'f': search_flags|=SEARCHF_FROM;
+      ++p;goto folyt;
+    case 'T': search_flags|=SEARCHF_TO<<8;
+    case 't': search_flags|=SEARCHF_TO;
+      ++p;goto folyt;
+    case 'S': search_flags|=SEARCHF_SUBJ<<8;
+    case 's': search_flags|=SEARCHF_SUBJ;
+      ++p;goto folyt;
+    case ':': ++p; break;
+    default: p=s;search_flags=0xFF; /* default: search in all !!!!! */
+  }
+ }
+ if(case_insensitive) search_flags|=(search_flags&0xFF)<<8;
+ strcpy(search_str,p);
+ upcstr(search_ustr,search_str);
+}
+
+int check_match(int i){
+  if(search_flags&(SEARCHF_FROM)){
+    if(search_flags&(SEARCHF_FROM<<8)){
+      if(strstr(upcstr(sor2,M_FROM(i)),search_ustr)) return 1;
+    } else {
+      if(strstr(M_FROM(i),search_str)) return 1;
+    }
+  }
+  if(search_flags&(SEARCHF_TO)){
+    if(search_flags&(SEARCHF_TO<<8)){
+      if(strstr(upcstr(sor2,M_TO(i)),search_ustr)) return 1;
+    } else {
+      if(strstr(M_TO(i),search_str)) return 1;
+    }
+  }
+  if(search_flags&(SEARCHF_SUBJ)){
+    if(search_flags&(SEARCHF_SUBJ<<8)){
+      if(strstr(upcstr(sor2,M_SUBJ(i)),search_ustr)) return 1;
+    } else {
+      if(strstr(M_SUBJ(i),search_str)) return 1;
+    }
+  }
+  return 0;
+}
+
+/*******************************************************************************
+            		--==>    D E L   <==--
+*******************************************************************************/
+
+void delete_mails(){
+int i=0,j;
+  while(i<MAIL_DB && !(M_FLAGS(i)&MAILFLAG_DEL)) i++;
+  if(i>=MAIL_DB) return; /* nincs mit torolni */
+  j=i;
+  printf("Deleting mails...\n");
+  while(1){
+    while(i<MAIL_DB && (M_FLAGS(i)&MAILFLAG_DEL)) i++;
+    if(i>=MAIL_DB) break;
+    printf("Copy mail %d -> %d\n",i,j);
+    folder->f_mails[j]=folder->f_mails[i]; UPDATE_REK(j);
+    ++i; ++j;
+  }
+  printf("Deleted total %d mails\n",MAIL_DB-j);
+  MAIL_DB=j;
+
+#if 0
+  while(j<i){
+    printf("Clearing mail %d\n",j);
+    M_MSIZE(j)=0;
+    UPDATE_REK(j);
+    ++j;
+  }
+#endif
+
+}
 
 /*******************************************************************************
                 		--==>    M A I N   <==--
@@ -303,6 +401,17 @@ do{
     goto ujra;
   }
 
+  /* Select for deletion */
+  if(gomb==KEY_DEL || gomb=='d' || gomb=='D'){
+    if(gomb=='D')
+      M_FLAGS(yy)|=MAILFLAG_DEL;
+    else
+      M_FLAGS(yy)^=MAILFLAG_DEL;
+    UPDATE_REK(yy);
+    ++yy;
+    goto ujra;
+  }
+
   /* COMPOSE */ 
   if(gomb=='c'){
     strcpy(_from,__from);
@@ -341,7 +450,7 @@ do{
         int i;
         for(i=0;i<mime_db;i++){
           if(mime_parts[i].flags&MIMEFLAG_B64){
-	          box_message2("Include this part? (Y/N)",mime_parts[i].name);
+	    box_message2("Include this part? (Y/N)",mime_parts[i].name);
             waitkey(); if(gomb!='y') continue;
           }
           save_part(folder,i,f2,reply?"> ":"",skip_header);
@@ -350,11 +459,11 @@ do{
       if(reply) write_signature(f2);
       fclose(f2);
     }
-    compose();
-    if(reply){ 
-      M_FLAGS(yy)|=MAILFLAG_REPLY; 
-      M_FLAGS(yy)&=(~MAILFLAG_NEW);
-      UPDATE_REK(yy);}
+    if(compose()){
+      if(reply) M_FLAGS(yy)|=MAILFLAG_REPLY;
+    }
+    M_FLAGS(yy)&=(~MAILFLAG_NEW);
+    UPDATE_REK(yy);
     goto ujra;
   }
   
@@ -375,61 +484,32 @@ do{
     goto ujra;
   }
 
-  /* s = SEARCH FIRST */
+  /* s/n = SEARCH FIRST */
   if(gomb=='s' || gomb=='n'){
     int xxx=gomb;
-    box_input(10,60,"Search:",search_str); if(gomb==KEY_ESC) goto ujra;
+    box_input(10,60,"Search:",search_str_input); if(gomb==KEY_ESC) goto ujra;
     clrscr();last_y0=-1;  /* goto ujra; helyett */
     gomb=xxx-32;
+    init_search(search_str_input);
   }
   /* S = SEARCH BACKWARD NEXT */
   if(gomb=='S'){
     int i;
-    if(case_insensitive){
-      upcstr(search_str,search_str);
-      for(i=yy-1;i>=0;i--){
-        if( strstr(upcstr(sor2,M_FROM(i)),search_str)
-         || strstr(upcstr(sor2,M_TO(i)),search_str)
-         || strstr(upcstr(sor2,M_SUBJ(i)),search_str) ) {
-          yy=i; goto ujra2;
-        }
-      }
-    } else
-      for(i=yy-1;i>=0;i--){
-        if( strstr(M_FROM(i),search_str)
-         || strstr(M_TO(i),search_str)
-         || strstr(M_SUBJ(i),search_str) ) {
-          yy=i; goto ujra2;
-        }
+    for(i=yy-1;i>=0;i--)
+      if(check_match(i)){
+        yy=i; goto ujra2;
       }
     goto ujra2;
   }  
-
   /* N = SEARCH FORWARD NEXT */
   if(gomb=='N'){
     int i;
-    if(case_insensitive){
-      upcstr(search_str,search_str);
-      for(i=yy+1;i<MAIL_DB;i++){
-        if( strstr(upcstr(sor2,M_FROM(i)),search_str)
-         || strstr(upcstr(sor2,M_TO(i)),search_str)
-         || strstr(upcstr(sor2,M_SUBJ(i)),search_str) ) {
-          yy=i;
-  	  goto ujra2;
-        }
-      }
-    } else
-      for(i=yy+1;i<MAIL_DB;i++){
-        if( strstr(M_FROM(i),search_str)
-         || strstr(M_TO(i),search_str)
-         || strstr(M_SUBJ(i),search_str) ) {
-          yy=i;
-  	  goto ujra2;
-        }
+    for(i=yy+1;i<MAIL_DB;i++)
+      if(check_match(i)){
+        yy=i; goto ujra2;
       }
     goto ujra2;
   }  
-
 
   /* p = SEARCH FORWARD NEXT SAME From: */
   if(gomb=='p'){
@@ -473,9 +553,13 @@ clrscr();
 getch2_disable();
 /***************** END ************************/
 
+delete_mails();
+
 /* the end */
 free_folder(folder);
 close_folder(folder);
+
+truncate("mail.idx",sizeof(rek_st)*MAIL_DB);
 
 unlink(temp_nev);
 unlink(cim_temp_nev);
