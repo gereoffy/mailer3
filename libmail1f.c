@@ -211,6 +211,36 @@ int open_folder(folder_st* folder,char *folder_name,char *index_name,char *strin
   return 0;
 }
 
+static int parse_mail(folder_st* folder,rek_st* mail){
+    mail->date=0;
+    mail->pos=sor_pos;
+    mail->from=mail->to=mail->subject=0;
+//  mail->flags=MAILFLAG_NEW;
+    eol_jel=0;eol_pos=-1;
+    // parse header:
+    do{
+      readln_sor2(folder->mfs,1); if(eof_jel) break;
+      if(strncasecmp(sor,"From:",5)==0)mail->from=write_strings(folder,nyir2(sor2,iso(sor+5)));
+      if(strncasecmp(sor,"To:",3)==0)mail->to=write_strings(folder,nyir2(sor2,iso(sor+3)));
+      if(strncasecmp(sor,"Subject:",8)==0)mail->subject=write_strings(folder,nyir2(sor2,iso(sor+8)));
+    }while(!eol_jel && sor[0]);
+    mail->msize=puffer_pos+puffer_mut;
+    // parse body:
+    do{
+      if(eof_jel || eol_jel) break;
+      readln_sor2(folder->mfs,0);
+    }while(folder->mfs!=MFS_INBOX || strncmp(sor,"From ",5) );
+    mail->msize=sor_pos-mail->msize;
+    mail->size=sor_pos-mail->pos;
+    if(eol_jel) ++sor_pos; // skip mail separator char (PMM folders)
+    return mail->size;
+}
+
+int upgrade_rek(folder_st* folder,rek_st* mail){
+  if(folder_seek(folder,mail->pos)) return -1;
+  return parse_mail(folder,mail);
+}
+
   /* Read folder, update index */
 int update_folder(folder_st* folder){
 
@@ -228,38 +258,16 @@ if(!eof_jel){ /* have new mail */
 
   do{
     // index new mail:
-    rek_st* mail;
     if(folder->mail_db>=folder->f_mails_size){
       re_malloc((char**) &folder->f_mails,folder->f_mails_size*sizeof(rek_st),
         (folder->mail_db+INDEX_ALLOC)*sizeof(rek_st) );
       folder->f_mails_size=folder->mail_db+INDEX_ALLOC;
     }
-    mail=&folder->f_mails[folder->mail_db];
-    mail->date=0;
-    mail->pos=sor_pos;
-    mail->from=mail->to=mail->subject=0;
-    mail->flags=MAILFLAG_NEW;
-    eol_jel=0;eol_pos=-1;
-    // parse header:
-    do{
-      readln_sor2(folder->mfs,1); if(eof_jel) break;
-      if(strncmp(sor,"From:",5)==0)mail->from=write_strings(folder,iso(sor+5));
-      if(strncmp(sor,"To:",3)==0)mail->to=write_strings(folder,iso(sor+3));
-      if(strncmp(sor,"Subject:",8)==0)mail->subject=write_strings(folder,iso(sor+8));
-    }while(!eol_jel && sor[0]);
-    mail->msize=puffer_pos+puffer_mut;
-    // parse body:
-    do{
-      if(eof_jel || eol_jel) break;
-      readln_sor2(folder->mfs,0);
-    }while(folder->mfs!=MFS_INBOX || strncmp(sor,"From ",5) );
-    mail->msize=sor_pos-mail->msize;
-    // store index (only if size!=0)
-    if((mail->size=sor_pos-mail->pos)){
-      write_rek(folder,folder->mail_db,mail);
+    if(parse_mail(folder,&folder->f_mails[folder->mail_db])>0){
+      folder->f_mails[folder->mail_db].flags=MAILFLAG_NEW;
+      write_rek(folder,folder->mail_db,&folder->f_mails[folder->mail_db]);
       ++folder->mail_db;
     }
-    if(eol_jel) ++sor_pos; // skip mail separator char (PMM folders)
   }while(!eof_jel);
 
   fflush(folder->file_index);
