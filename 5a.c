@@ -71,7 +71,7 @@ static folder_st *folder=&default_folder;
 
 static int filter_attach=0;
 static int filter_deleted=0;
-static int filter_search=0;
+static int filter_selected=0;
 static int filter_extra=0;
 static int filter_list=0;
 
@@ -84,7 +84,8 @@ static int m_step(int old,int dist){
 //    if(old+dir<0 || old+dir>=MAIL_DB) break;
     old+=dir;
     if(old<0 || old>=MAIL_DB) break; //return -1;
-    if(!filter_search || check_match(old)){
+    //if(!filter_selected || check_match(old))
+    {
     if(filter_deleted==2){
       if(M_FLAGS(old)&MAILFLAG_DEL) --dist;
     } else if(filter_deleted==1 || !(M_FLAGS(old)&MAILFLAG_DEL)){
@@ -92,6 +93,8 @@ static int m_step(int old,int dist){
       if(!filter_attach || M_FLAGS(old)&MAILFLAG_ATTACH)
       if(!filter_list || (filter_list==1 && M_FLAGS(old)&MAILFLAG_LIST) ||
          (filter_list==2 && !(M_FLAGS(old)&MAILFLAG_LIST)))
+      if(!filter_selected || (filter_selected==1 && M_FLAGS(old)&MAILFLAG_SELECTED) ||
+         (filter_selected==2 && !(M_FLAGS(old)&MAILFLAG_SELECTED)))
 	--dist;
     }
     }
@@ -111,7 +114,8 @@ int i;
     gotoxy(0,i+2);
     if(yy==y){ set_color(7); g_y=i+2; } else set_color(0);
 
-    if(y<MAIL_DB)
+    if(y<MAIL_DB){
+      if(M_FLAGS(y)&MAILFLAG_SELECTED) set_color(1);
 /*      printf("%-28.28s %8ld  %-.40s\x1B[K\n",  */
       printf("%c%c%-*.*s %8d %-*.*s\n",
         (M_FLAGS(y)&MAILFLAG_DEL) ? 'D' :
@@ -126,7 +130,7 @@ int i;
 //		    (y+1),
 		    xs2,xs2,strofs2(M_SUBJ(y),xx)
 	    );
-    else
+    } else
       printf("\x1B[K\n");
    }
    y=m_step(y,1);
@@ -135,7 +139,15 @@ int i;
 
   /* a STATUSZ-sor kiirasa legfelulre: */
   set_color(0); gotoxy(0,0);
-  printf("%d/%d  Term: %dx%d  Pos=%d  Size=%d  Flags=%c%c%c%c%c\x1B[K",
+  printf("[%c%c%c%s%c%s%c%s] %d/%d [%dx%d]  P:%d S:%d  [%c%c%c%c%c]\x1B[K",
+    filter_extra ? 'E' : 'e',
+    filter_attach ? 'A' : 'a',
+    filter_deleted ? 'D' : 'd',
+    (filter_deleted==1) ? "+" : "",
+    (filter_selected<2) ? 'S' : 's',
+    filter_selected ? "" : "+",
+    (filter_list<2) ? 'L' : 'l',
+    filter_list ? "" : "+",
     yy+1,MAIL_DB,term_xs,term_ys,M_POS(yy),M_SIZE(yy),
     '0'+from_mod,(default_mimeflags&MIMEFLAG_PQ)?'P':'p',
     skip_header?'h':'H', linewrap?'W':'w',
@@ -496,7 +508,7 @@ do{
     goto ujra;
   }
   if(gomb=='?'){
-    filter_search^=1;
+    filter_selected=(filter_selected+1)%3;
     yy=0;
     goto ujra;
   }
@@ -588,6 +600,23 @@ do{
           i=m_step(i,1);
 	}
 	fclose(f);
+      }
+    }
+    goto ujra;
+  }
+  
+  /* (un)select messages */
+  if(gomb=='-' || gomb=='+' || gomb=='*'){
+    int i=-1;
+    int mode=gomb;
+    box_input(10,60,"Search:",search_str_input); if(gomb==KEY_ESC) goto ujra;
+    init_search(search_str_input);
+    while((i=m_step(i,1))<MAIL_DB){
+      int ret=(check_match(i)) ? MAILFLAG_SELECTED : 0;
+      switch(mode){
+      case '-': M_FLAGS(i)&=~ret; break;
+      case '+': M_FLAGS(i)|=ret; break;
+      case '*': M_FLAGS(i)^=ret; break;
       }
     }
     goto ujra;
