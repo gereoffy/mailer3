@@ -13,7 +13,7 @@
 #define cim_temp_nev ".tmp.libMail~"
 
 #define STRINGS_MALLOC 0x4000
-#define STRINGS_HASH 1024
+#define STRINGS_HASH 4096
 #define INDEX_ALLOC 100
 
 char sor[sormaxsize];
@@ -72,6 +72,8 @@ static int write_strings(folder_st* folder,char *str){
   int hash=0;
     /* Try to optimize */
   if(folder->f_strings){
+    char *p=folder->f_strings;
+    char *e=&folder->f_strings[folder->strings_pos];
 #ifdef STRINGS_HASH
     if(folder->strings_hash){
       for(i=0;i<len;i++){ hash=(hash<<3)^(hash>>29); hash^=str[i]; }
@@ -80,9 +82,17 @@ static int write_strings(folder_st* folder,char *str){
         if(i<folder->strings_pos && strcmp(&folder->f_strings[i],str)==0)
           return i; /* Megvan!!! */
     }
+    if(folder->strings_hash_full){
+      // full hash!
+      i=folder->strings_hash[hash];
+      while(i){
+        if(i>=folder->strings_pos) abort(); // should not happen!!!!!
+        if(strcmp(&folder->f_strings[i],str)==0) return i; /* Megvan!!! */
+	i=folder->strings_hash_full[i];
+      }
+      goto not_found;
+    }
 #endif
-{   char *p=folder->f_strings;
-    char *e=&folder->f_strings[folder->strings_pos];
 #if 1
     while(p<e){
       char *q=p;
@@ -93,20 +103,50 @@ static int write_strings(folder_st* folder,char *str){
       }
     }
 #endif
+not_found:
     if((e+len)>=folder->strings_end){
       int oldsize=folder->strings_end-folder->f_strings;
       int newsize=re_malloc(&folder->f_strings,oldsize,oldsize+STRINGS_MALLOC);
+      if(folder->strings_hash_full)
+        re_malloc((char**) &folder->strings_hash_full,oldsize*sizeof(int),(oldsize+STRINGS_MALLOC)*sizeof(int));
       folder->strings_end=&folder->f_strings[newsize];
     }
-}
     if(folder->f_strings) memcpy(&folder->f_strings[folder->strings_pos],str,len);
   }
 /*  if(folder->mail_db<5) printf("ftell=%d  folder->strings_pos=%d\n",ftell(folder->file_strings),folder->strings_pos); */
   i=fwrite(str,1,len,folder->file_strings);/* fflush(folder->file_strings); */
   if(i!=len) return 0; /* !!! */
   folder->strings_pos+=len;
+  if(folder->strings_hash_full)
+    folder->strings_hash_full[tmp]=folder->strings_hash[hash];
   if(folder->strings_hash) folder->strings_hash[hash]=tmp;
   return tmp;
+}
+
+void full_hash_strings(folder_st* folder){
+  char *p=folder->f_strings;
+  char *e=&folder->f_strings[folder->strings_pos];
+  int oldsize=folder->strings_end-folder->f_strings;
+  int count=0;
+  printf("Building FULL HASH table for %d bytes (%d)\n",folder->strings_pos,oldsize);
+  folder->strings_hash_full=malloc(oldsize*sizeof(int));
+  if(!folder->strings_hash) folder->strings_hash=malloc(sizeof(int)*STRINGS_HASH);
+  if(!folder->strings_hash || !folder->strings_hash_full) return; // ERROR!
+  memset(folder->strings_hash_full,0,oldsize*sizeof(int));
+  memset(folder->strings_hash,0,sizeof(int)*STRINGS_HASH);
+  while(p<e){
+    int tmp=p-folder->f_strings;
+    int hash=0;
+    while(1){
+      hash=(hash<<3)^(hash>>29); hash^=*p;
+      if(!(*p++)) break;
+    }
+    hash&=STRINGS_HASH-1;
+    folder->strings_hash_full[tmp]=folder->strings_hash[hash];
+    folder->strings_hash[hash]=tmp;
+    ++count;
+  }
+  printf("FULL HASH table done, for %d strings\n",count);
 }
 
 int open_folder(folder_st* folder,char *folder_name,char *index_name,char *strings_name){
@@ -114,6 +154,8 @@ int open_folder(folder_st* folder,char *folder_name,char *index_name,char *strin
   if(!folder_name) return 1;
 //  if(folder->file_folder){ printf("\n\nfile_folder leak!  \n");abort();}
   if(!(folder->file_folder=fopen(folder_name,"rb"))) return 1;/* no such folder*/
+
+  // Load the INDEX file:
 
 //  if(folder->file_index){ printf("\n\nfile_index leak!  \n");abort();}
   if(!(folder->file_index=fopen(index_name,"ab+"))) return 2;/* create index*/
@@ -125,8 +167,6 @@ int open_folder(folder_st* folder,char *folder_name,char *index_name,char *strin
   if(folder->mail_db % sizeof(rek_st)) return 4; /* invalid filesize */
   folder->mail_db/=sizeof(rek_st);
   printf("mail_db=%d\n",folder->mail_db);
-
-  // Load the INDEX file:
 
   folder->f_mails_size=folder->mail_db+INDEX_ALLOC;
   folder->f_mails=malloc(sizeof(rek_st) * folder->f_mails_size);
@@ -167,6 +207,8 @@ int open_folder(folder_st* folder,char *folder_name,char *index_name,char *strin
     fseek(folder->file_strings,folder->strings_pos,SEEK_SET); // for write!
     printf("after fread:  ftell=%ld  strings_pos=%d\n",ftell(folder->file_strings),folder->strings_pos);
   }
+
+  if(!folder->mail_db) full_hash_strings(folder);
 
   return 0;
 }
