@@ -14,6 +14,7 @@
 
 #define STRINGS_MALLOC 0x4000
 #define STRINGS_HASH 1024
+#define INDEX_ALLOC 100
 
 char sor[sormaxsize];
 char sor2[sormaxsize];
@@ -31,11 +32,11 @@ char message_id[256];
 
 /******************************************************************************/
 
-int read_rek(folder_st *folder,int i,rek_st *mail){
-  if(fseek(folder->file_index,i*sizeof(rek_st),SEEK_SET)) return 0;
-  if(fread(mail,sizeof(rek_st),1,folder->file_index)!=1) return 0;
-  return 1;
-}
+//static int read_rek(folder_st *folder,int i,rek_st *mail){
+//  if(fseek(folder->file_index,i*sizeof(rek_st),SEEK_SET)) return 0;
+//  if(fread(mail,sizeof(rek_st),1,folder->file_index)!=1) return 0;
+//  return 1;
+//}
 
 int write_rek(folder_st *folder,int i,rek_st *mail){
   if(fseek(folder->file_index,i*sizeof(rek_st),SEEK_SET)) return 0;
@@ -62,59 +63,51 @@ static int folder_seek(folder_st* folder,int i){
 
 /******************************************************************************/
 
-static char *strings;
-static char *strings_end;
-static int  *strings_hash;
-static int strings_pos;
-
 static int write_strings(folder_st* folder,char *str){
-  int tmp=strings_pos;
+  int tmp=folder->strings_pos;
   int i;
   int len=strlen(str)+1;
   int hash=0;
-#ifdef STRINGS_MALLOC
     /* Try to optimize */
-  if(strings){
+  if(folder->f_strings){
 #ifdef STRINGS_HASH
-    if(strings_hash){
+    if(folder->strings_hash){
       for(i=0;i<len;i++){ hash=(hash<<3)^(hash>>29); hash^=str[i]; }
       hash&=STRINGS_HASH-1;
-      if((i=strings_hash[hash])) 
-        if(strcmp(&strings[i],str)==0)
+      if((i=folder->strings_hash[hash]))
+        if(i<folder->strings_pos && strcmp(&folder->f_strings[i],str)==0)
           return i; /* Megvan!!! */
-    }    
+    }
 #endif
-{   char *p=strings;
-    char *e=&strings[strings_pos];
+{   char *p=folder->f_strings;
+    char *e=&folder->f_strings[folder->strings_pos];
 #if 1
     while(p<e){
       char *q=p;
       while(*p++){};
       if(len==(p-q)) if(*q==*str) if(strcmp(q,str)==0){
-        if(strings_hash) strings_hash[hash]=q-strings;
-        return (q-strings); /* Megvan!!! */
+        if(folder->strings_hash) folder->strings_hash[hash]=q-folder->f_strings;
+        return (q-folder->f_strings); /* Megvan!!! */
       }
     }
 #endif
-    if((e+len)>=strings_end){
-      int oldsize=strings_end-strings;
-      int newsize=re_malloc(&strings,oldsize,oldsize+STRINGS_MALLOC);
-      strings_end=&strings[newsize];
+    if((e+len)>=folder->strings_end){
+      int oldsize=folder->strings_end-folder->f_strings;
+      int newsize=re_malloc(&folder->f_strings,oldsize,oldsize+STRINGS_MALLOC);
+      folder->strings_end=&folder->f_strings[newsize];
     }
 }
-    if(strings) memcpy(&strings[strings_pos],str,len);
+    if(folder->f_strings) memcpy(&folder->f_strings[folder->strings_pos],str,len);
   }
-#endif
-/*  if(folder->mail_db<5) printf("ftell=%d  strings_pos=%d\n",ftell(folder->file_strings),strings_pos); */
+/*  if(folder->mail_db<5) printf("ftell=%d  folder->strings_pos=%d\n",ftell(folder->file_strings),folder->strings_pos); */
   i=fwrite(str,1,len,folder->file_strings);/* fflush(folder->file_strings); */
   if(i!=len) return 0; /* !!! */
-  strings_pos+=len;
-  if(strings_hash) strings_hash[hash]=tmp;
+  folder->strings_pos+=len;
+  if(folder->strings_hash) folder->strings_hash[hash]=tmp;
   return tmp;
 }
 
 int open_folder(folder_st* folder,char *folder_name,char *index_name,char *strings_name){
-  rek_st mail;
   if(!folder) return 1;
   if(!folder_name) return 1;
 //  if(folder->file_folder){ printf("\n\nfile_folder leak!  \n");abort();}
@@ -126,115 +119,111 @@ int open_folder(folder_st* folder,char *folder_name,char *index_name,char *strin
   if(!(folder->file_index=fopen(index_name,"rb+"))) return 3;/* write to index*/
   fseek(folder->file_index,0,SEEK_END);
   folder->mail_db=ftell(folder->file_index);
-  printf("Index size = %d\n",folder->mail_db);
+  printf("Index size = %d bytes\n",folder->mail_db);
   if(folder->mail_db % sizeof(rek_st)) return 4; /* invalid filesize */
   folder->mail_db/=sizeof(rek_st);
   printf("mail_db=%d\n",folder->mail_db);
-  if(!folder->mail_db)
-    sor_pos=(folder->mfs==MFS_PMM) ? 128 : 0;
-  else {
-    if(!read_rek(folder,folder->mail_db-1,&mail)) return 5;
-    sor_pos=mail.pos+mail.size;
-  }
-  if(folder_seek(folder,sor_pos)){ printf("Cannot seek folder to %d\n",sor_pos); return 6;}
 
-//  if(folder->file_strings){ printf("\n\nfile_strings leak!  \n");abort();}
+  // Load the INDEX file:
+
+  folder->f_mails_size=folder->mail_db+INDEX_ALLOC;
+  folder->f_mails=malloc(sizeof(rek_st) * folder->f_mails_size);
+  if(!folder->f_mails) return 7;
+
+  if(!folder->mail_db)
+    folder->folder_size=(folder->mfs==MFS_PMM) ? 128 : 0;
+  else {
+    rewind(folder->file_index);
+    if(folder->mail_db!=fread(folder->f_mails,sizeof(rek_st),folder->mail_db,folder->file_index))
+      { printf("load_folder: index read error");return 8;}
+    folder->folder_size=folder->f_mails[folder->mail_db-1].pos+
+			folder->f_mails[folder->mail_db-1].size;
+  }
+
+  printf("### folder_size=%d  mail_db=%d\n",folder->folder_size,folder->mail_db);
+
+  // Load the STRINGS file:
+
   if(!(folder->file_strings=fopen(strings_name,"ab+"))) return 3;
   fclose(folder->file_strings);
   if(!(folder->file_strings=fopen(strings_name,"rb+"))) return 3;
   fseek(folder->file_strings,0,SEEK_END);
-  strings=NULL;
-  if((strings_pos=ftell(folder->file_strings))==0){
+  folder->strings_pos=ftell(folder->file_strings);
+  folder->f_strings=malloc((folder->strings_pos+STRINGS_MALLOC)&(~15));
+  if(!folder->f_strings){ printf("cannot malloc() for strings!\n"); return 7;}
+  folder->strings_end=&folder->f_strings[(folder->strings_pos+STRINGS_MALLOC)&(~15)];
+  if(folder->strings_pos==0){
+    // empty file:
     printf("Creating new STRINGS file\n");
     write_strings(folder,"");
-    printf("ftell=%ld  strings_pos=%d\n",ftell(folder->file_strings),strings_pos);
+    printf("ftell=%ld  strings_pos=%d\n",ftell(folder->file_strings),folder->strings_pos);
+  } else {
+    // read file:
+    rewind(folder->file_strings);
+    printf("after rewind:  ftell=%ld  strings_pos=%d\n",ftell(folder->file_strings),folder->strings_pos);
+    fread(folder->f_strings,1,folder->strings_pos,folder->file_strings);
+    fseek(folder->file_strings,folder->strings_pos,SEEK_SET); // for write!
+    printf("after fread:  ftell=%ld  strings_pos=%d\n",ftell(folder->file_strings),folder->strings_pos);
   }
 
-  /* Read folder, build index */
-//  sor_pos=puffer_pos+puffer_mut;
+  /* Read folder, update index */
+
+  if(folder_seek(folder,folder->folder_size)){ printf("Cannot seek folder to %d\n",sor_pos); return 6;}
 
 if(!eof_jel){ /* have new mail */
 
-#ifdef STRINGS_MALLOC
-  strings=malloc((strings_pos+STRINGS_MALLOC)&(~15));
-  if(strings){
-    strings_end=&strings[(strings_pos+STRINGS_MALLOC)&(~15)];
-    rewind(folder->file_strings);
-    printf("after rewind:  ftell=%ld  strings_pos=%d\n",ftell(folder->file_strings),strings_pos);
-    fread(strings,1,strings_pos,folder->file_strings);
-    fseek(folder->file_strings,strings_pos,SEEK_SET);
-    /*fflush(folder->file_strings);*/
-    printf("after fread:  ftell=%ld  strings_pos=%d\n",ftell(folder->file_strings),strings_pos);
-  }
 #ifdef STRINGS_HASH
-  strings_hash=malloc(sizeof(int)*STRINGS_HASH);
-  if(strings_hash) memset(strings_hash,0,sizeof(int)*STRINGS_HASH);
+  if(!folder->strings_hash){
+    folder->strings_hash=malloc(sizeof(int)*STRINGS_HASH);
+    if(folder->strings_hash) memset(folder->strings_hash,0,sizeof(int)*STRINGS_HASH);
+  }
 #endif
-#endif
-
-  mail.date=0;
+  
   do{
     // index new mail:
-    mail.pos=sor_pos;
-    mail.from=mail.to=mail.subject=0;
-    mail.flags=MAILFLAG_NEW;
+    rek_st* mail;
+    if(folder->mail_db>=folder->f_mails_size){
+      re_malloc((char**) &folder->f_mails,folder->f_mails_size*sizeof(rek_st),
+        (folder->mail_db+INDEX_ALLOC)*sizeof(rek_st) );
+      folder->f_mails_size=folder->mail_db+INDEX_ALLOC;
+    }
+    mail=&folder->f_mails[folder->mail_db];
+    mail->date=0;
+    mail->pos=sor_pos;
+    mail->from=mail->to=mail->subject=0;
+    mail->flags=MAILFLAG_NEW;
     eol_jel=0;eol_pos=-1;
     // parse header:
     do{
       readln_sor2(folder->mfs,1); if(eof_jel) break;
-      if(strncmp(sor,"From:",5)==0)mail.from=write_strings(folder,iso(sor+5));
-      if(strncmp(sor,"To:",3)==0)mail.to=write_strings(folder,iso(sor+3));
-      if(strncmp(sor,"Subject:",8)==0)mail.subject=write_strings(folder,iso(sor+8));
+      if(strncmp(sor,"From:",5)==0)mail->from=write_strings(folder,iso(sor+5));
+      if(strncmp(sor,"To:",3)==0)mail->to=write_strings(folder,iso(sor+3));
+      if(strncmp(sor,"Subject:",8)==0)mail->subject=write_strings(folder,iso(sor+8));
     }while(!eol_jel && sor[0]);
-    mail.msize=puffer_pos+puffer_mut;
+    mail->msize=puffer_pos+puffer_mut;
     // parse body:
     do{
       if(eof_jel || eol_jel) break;
       readln_sor2(folder->mfs,0);
     }while(folder->mfs!=MFS_INBOX || strncmp(sor,"From ",5) );
-    mail.msize=sor_pos-mail.msize;
+    mail->msize=sor_pos-mail->msize;
     // store index (only if size!=0)
-    if((mail.size=sor_pos-mail.pos)){
-      fflush(folder->file_index);
-      if(1!=fwrite(&mail,sizeof(rek_st),1,folder->file_index)){
-        printf("error writting to index file!\n");
-        perror("hiba");
-      }
+    if((mail->size=sor_pos-mail->pos)){
+      write_rek(folder,folder->mail_db,mail);
       ++folder->mail_db;
     }
     if(eol_jel) ++sor_pos; // skip mail separator char (PMM folders)
   }while(!eof_jel);
 
-#ifdef STRINGS_MALLOC
-  if(strings){ free(strings);strings=NULL; }
-#ifdef STRINGS_HASH
-  if(strings_hash){ free(strings_hash);strings_hash=NULL;}
-#endif
-#endif
+  fflush(folder->file_index);
+  folder->folder_size=sor_pos;
+
+//#ifdef STRINGS_HASH
+//  if(folder->strings_hash){ free(folder->strings_hash);folder->strings_hash=NULL;}
+//#endif
 }
 
   printf("mail_db=%d (after reading new)\n",folder->mail_db);
-
-  folder->strings_size=strings_pos;
-  folder->folder_size=sor_pos;
-  folder->f_mails=NULL;
-  folder->f_strings=NULL;
-
-/* Allocate memory and load index+strings files */
-
-  folder->f_mails=malloc(sizeof(rek_st) * folder->mail_db);
-  folder->f_strings=malloc(folder->strings_size);
-  if(!folder->f_strings || !folder->f_mails) return 7;
-
-  fflush(folder->file_index);
-  fflush(folder->file_strings);
-
-  rewind(folder->file_index);
-  if(folder->mail_db!=fread(folder->f_mails,sizeof(rek_st),folder->mail_db,folder->file_index))
-    { printf("load_folder: index read error");return 8;}
-  rewind(folder->file_strings);
-  if(folder->strings_size!=fread(folder->f_strings,1,folder->strings_size,folder->file_strings))
-    { printf("load_folder: strings read error");return 9;}
 
   return 0;
 }
@@ -242,6 +231,7 @@ if(!eof_jel){ /* have new mail */
 void close_folder(folder_st *folder){
   if(folder->f_strings) {free(folder->f_strings);folder->f_strings=NULL;}
   if(folder->f_mails)   {free(folder->f_mails);  folder->f_mails=NULL;}
+  if(folder->strings_hash){free(folder->strings_hash); folder->strings_hash=NULL;}
   fclose(folder->file_strings);folder->file_strings=NULL;
   fclose(folder->file_index);folder->file_index=NULL;
   fclose(folder->file_folder);folder->file_folder=NULL;
