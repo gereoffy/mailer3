@@ -208,8 +208,6 @@ int open_folder(folder_st* folder,char *folder_name,char *index_name,char *strin
     printf("after fread:  ftell=%ld  strings_pos=%d\n",ftell(folder->file_strings),folder->strings_pos);
   }
 
-  if(!folder->mail_db) full_hash_strings(folder);
-
   return 0;
 }
 
@@ -221,12 +219,13 @@ int update_folder(folder_st* folder){
 if(!eof_jel){ /* have new mail */
 
 #ifdef STRINGS_HASH
+  if(!folder->mail_db) full_hash_strings(folder);
   if(!folder->strings_hash){
     folder->strings_hash=malloc(sizeof(int)*STRINGS_HASH);
     if(folder->strings_hash) memset(folder->strings_hash,0,sizeof(int)*STRINGS_HASH);
   }
 #endif
-  
+
   do{
     // index new mail:
     rek_st* mail;
@@ -266,9 +265,10 @@ if(!eof_jel){ /* have new mail */
   fflush(folder->file_index);
   folder->folder_size=sor_pos;
 
-//#ifdef STRINGS_HASH
+#ifdef STRINGS_HASH
+  if(folder->strings_hash_full){ free(folder->strings_hash_full);folder->strings_hash_full=NULL;}
 //  if(folder->strings_hash){ free(folder->strings_hash);folder->strings_hash=NULL;}
-//#endif
+#endif
 }
 
   printf("mail_db=%d (after reading new)\n",folder->mail_db);
