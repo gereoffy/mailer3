@@ -71,6 +71,10 @@ static folder_st *folder=&default_folder;
 
 static int filter_attach=0;
 static int filter_deleted=0;
+static int filter_search=0;
+static int filter_extra=0;
+
+static int check_match(int i);
 
 static int m_step(int old,int dist){
   int dir=(dist<0)?-1:1;
@@ -79,13 +83,14 @@ static int m_step(int old,int dist){
 //    if(old+dir<0 || old+dir>=MAIL_DB) break;
     old+=dir;
     if(old<0 || old>=MAIL_DB) break; //return -1;
-    if(filter_deleted){
+    if(!filter_search || check_match(old)){
+    if(filter_deleted==2){
       if(M_FLAGS(old)&MAILFLAG_DEL) --dist;
-    } else if(!(M_FLAGS(old)&MAILFLAG_DEL)){
-      if(filter_attach){
-	if(M_FLAGS(old)&MAILFLAG_ATTACH) --dist;
-      } else
+    } else if(filter_deleted==1 || !(M_FLAGS(old)&MAILFLAG_DEL)){
+      if(!filter_extra || M_FLAGS(old)&MAILFLAG_EXTRA)
+      if(!filter_attach || M_FLAGS(old)&MAILFLAG_ATTACH)
 	--dist;
+    }
     }
   }
   return old;
@@ -111,7 +116,8 @@ int i;
           ((M_FLAGS(y)&MAILFLAG_READ) ? 'r' :
             ((M_FLAGS(y)&MAILFLAG_NEW) ? '!' : ' ')
           ),
-	  ((M_FLAGS(y)&MAILFLAG_ATTACH) ? '+' : ' '),
+	  ((M_FLAGS(y)&MAILFLAG_EXTRA) ? '*' : 
+	   ((M_FLAGS(y)&MAILFLAG_ATTACH) ? '+' : ' ')),
         xs1,xs1,strofs2(cim_ertelmezo(M_FROM(y),from_mod),xx),
 		    M_MSIZE(y),
 //		    (y+1),
@@ -319,6 +325,7 @@ static int check_match(int i){
             		--==>    D E L   <==--
 *******************************************************************************/
 
+#if 0
 static void delete_mails(){
 int i=0,j;
   while(i<MAIL_DB && !(M_FLAGS(i)&MAILFLAG_DEL)) i++;
@@ -346,6 +353,7 @@ int i=0,j;
 #endif
 
 }
+#endif
 
 /*******************************************************************************
                 		--==>    M A I N   <==--
@@ -470,7 +478,7 @@ do{
 
   /* Select filtering */
   if(gomb=='D'){
-    filter_deleted^=1;
+    filter_deleted=(filter_deleted+1)%3;
     yy=0;
     goto ujra;
   }
@@ -479,10 +487,29 @@ do{
     yy=0;
     goto ujra;
   }
+  if(gomb=='?'){
+    filter_search^=1;
+    yy=0;
+    goto ujra;
+  }
+  if(gomb=='E'){
+    filter_extra^=1;
+    yy=0;
+    goto ujra;
+  }
 
   /* Select for deletion */
   if(gomb==KEY_DEL /* || gomb=='d'*/ ){
     M_FLAGS(yy)^=MAILFLAG_DEL;
+    UPDATE_REK(yy);
+    if(m_step(yy,1)<MAIL_DB) yy=m_step(yy,1); else
+    if(m_step(yy,-1)>=0) yy=m_step(yy,-1); else yy=0;
+    goto ujra;
+  }
+
+  /* Select for extra */
+  if(gomb=='e'){
+    M_FLAGS(yy)^=MAILFLAG_EXTRA;
     UPDATE_REK(yy);
     if(m_step(yy,1)<MAIL_DB) yy=m_step(yy,1); else
     if(m_step(yy,-1)>=0) yy=m_step(yy,-1); else yy=0;
