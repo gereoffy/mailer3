@@ -1,6 +1,13 @@
 ChangeLog: (sorry, it's hungarian...)
 ==========
 
+2002/07/11.   [LINUX]		    v3.7
+~~~~~~~~~~~
+- fixed memory overwrite bug causing sig11 after a while (in load_termcap())
+- introducing IntelliWrap (C) :)) - intelligent line-wrapping, can be disabled
+- recognize filename in Content-Disposition: header
+
+
 2002/02/12.   [LINUX]               v3.6
 ~~~~~~~~~~~
 - increased from[] to[] etc max length
