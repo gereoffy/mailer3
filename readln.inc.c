@@ -9,6 +9,7 @@ int puffer_mut=0;
 unsigned int sor_pos,eol_pos;
 int eof_jel=0;
 int eol_jel=0;
+char sor_next=0;
 FILE *file_readln=NULL;   /* used for readln_sor(); function */
 
 int puffer_update(){
@@ -23,9 +24,10 @@ int readln_sor() {
 int i=0;
 register char c;
   sor_pos=puffer_pos+puffer_mut;
+  sor_next=0;
   if(sor_pos>=eol_pos){eol_jel=1;sor[0]=0;return(-1);}
   
-  if(folder->mfs!=MFS_PMM && puffer_mut+sormaxsize<puffer_size){
+  if(folder->mfs!=MFS_PMM && puffer_mut+sormaxsize+2<puffer_size){
     /* Optimized version! */
     register char *p=&puffer[puffer_mut];
     do{
@@ -54,6 +56,7 @@ register char c;
     puffer_mut+=i+1;
     if(i && sor[i-1]==13) --i;
     sor[i]=0;
+    sor_next=puffer[puffer_mut];
     return 0;
   }
   
@@ -67,6 +70,12 @@ register char c;
     if(c!=13) sor[i++]=c;
   }while(i<sormaxsize);
   sor[i]=0;
+  if(puffer_size<=puffer_mut)
+    if(!puffer_update()){ // no more data...
+      eof_jel=0; // clear eof flag, as we're not at EOF yet
+      return 0;
+    }
+  sor_next=puffer[puffer_mut];
   return(0);
 }
 
