@@ -20,10 +20,6 @@ char sor2[sormaxsize];
 
 int default_mimeflags=0;
 
-rek_st mail;
-folder_st default_folder={MFS_INBOX,0};
-folder_st *folder=&default_folder;
-
 char addr_list_t[MAX_ADDR][10];
 char addr_list_v[MAX_ADDR][128];
 int addr_count=0;
@@ -56,6 +52,14 @@ static int re_malloc(char **ptr,int oldsize,int newsize){
   return newsize;
 }
 
+//  folder_seek(folder,mail->pos);
+static int folder_seek(folder_st* folder,int i){
+  if(fseek(folder->file_folder,i,SEEK_SET)) return -1;
+  file_readln=folder->file_folder;
+  eof_jel=0; puffer_update();
+  return 0;
+}
+
 /******************************************************************************/
 
 static char *strings;
@@ -63,7 +67,7 @@ static char *strings_end;
 static int  *strings_hash;
 static int strings_pos;
 
-static int write_strings(char *str){
+static int write_strings(folder_st* folder,char *str){
   int tmp=strings_pos;
   int i;
   int len=strlen(str)+1;
@@ -110,6 +114,7 @@ static int write_strings(char *str){
 }
 
 int open_folder(folder_st* folder,char *folder_name,char *index_name,char *strings_name){
+  rek_st mail;
   if(!folder) return 1;
   if(!folder_name) return 1;
 //  if(folder->file_folder){ printf("\n\nfile_folder leak!  \n");abort();}
@@ -141,14 +146,12 @@ int open_folder(folder_st* folder,char *folder_name,char *index_name,char *strin
   strings=NULL;
   if((strings_pos=ftell(folder->file_strings))==0){
     printf("Creating new STRINGS file\n");
-    write_strings("");
+    write_strings(folder,"");
     printf("ftell=%ld  strings_pos=%d\n",ftell(folder->file_strings),strings_pos);
   }
 
   /* Read folder, build index */
-  file_readln=folder->file_folder; eof_jel=0;
-  puffer_update();
-  sor_pos=puffer_pos+puffer_mut;
+//  sor_pos=puffer_pos+puffer_mut;
 
 if(!eof_jel){ /* have new mail */
 
@@ -179,9 +182,9 @@ if(!eof_jel){ /* have new mail */
     // parse header:
     do{
       readln_sor2(folder->mfs,1); if(eof_jel) break;
-      if(strncmp(sor,"From:",5)==0)mail.from=write_strings(iso(sor+5));
-      if(strncmp(sor,"To:",3)==0)mail.to=write_strings(iso(sor+3));
-      if(strncmp(sor,"Subject:",8)==0)mail.subject=write_strings(iso(sor+8));
+      if(strncmp(sor,"From:",5)==0)mail.from=write_strings(folder,iso(sor+5));
+      if(strncmp(sor,"To:",3)==0)mail.to=write_strings(folder,iso(sor+3));
+      if(strncmp(sor,"Subject:",8)==0)mail.subject=write_strings(folder,iso(sor+8));
     }while(!eol_jel && sor[0]);
     mail.msize=puffer_pos+puffer_mut;
     // parse body:
@@ -217,33 +220,28 @@ if(!eof_jel){ /* have new mail */
   folder->f_mails=NULL;
   folder->f_strings=NULL;
 
-  return 0;
-}
-
 /* Allocate memory and load index+strings files */
-int load_folder(folder_st *folder){
+
   folder->f_mails=malloc(sizeof(rek_st) * folder->mail_db);
   folder->f_strings=malloc(folder->strings_size);
-  if(!folder->f_strings || !folder->f_mails) return 1;
+  if(!folder->f_strings || !folder->f_mails) return 7;
 
   fflush(folder->file_index);
   fflush(folder->file_strings);
 
   rewind(folder->file_index);
   if(folder->mail_db!=fread(folder->f_mails,sizeof(rek_st),folder->mail_db,folder->file_index))
-    { printf("load_folder: index read error");return 1;}
+    { printf("load_folder: index read error");return 8;}
   rewind(folder->file_strings);
   if(folder->strings_size!=fread(folder->f_strings,1,folder->strings_size,folder->file_strings))
-    { printf("load_folder: strings read error");return 1;}
+    { printf("load_folder: strings read error");return 9;}
+
   return 0;
 }
 
-void free_folder(folder_st *folder){
+void close_folder(folder_st *folder){
   if(folder->f_strings) {free(folder->f_strings);folder->f_strings=NULL;}
   if(folder->f_mails)   {free(folder->f_mails);  folder->f_mails=NULL;}
-}
-
-void close_folder(folder_st *folder){
   fclose(folder->file_strings);folder->file_strings=NULL;
   fclose(folder->file_index);folder->file_index=NULL;
   fclose(folder->file_folder);folder->file_folder=NULL;
@@ -269,8 +267,6 @@ char field[256];   /* pl: "CONTENT_ENCODING:" */
 char *data;
 
   folder_seek(folder,mail->pos);
-  file_readln=folder->file_folder;
-  eof_jel=0; puffer_update();
   eol_jel=0; eol_pos=mail->pos+mail->size;
 
   boundary_db=0; boundary[0][0]=0;
@@ -421,7 +417,7 @@ if(mime_db>2){
 
 /************************** SAVE_PART *************************************/
 
-void wrap_print(FILE *f2,char *replystr,char* sor,int linewrap){
+static void wrap_print(FILE *f2,char *replystr,char* sor,int linewrap){
   unsigned char* p=sor;
   char* q;
   int maxlen,wraplen;
@@ -472,7 +468,6 @@ void save_part(folder_st *folder,int i,FILE *f2,char *replystr,int skip_header, 
   if(i<0 || i>=mime_db) return;
   
   folder_seek(folder,mime_parts[i].start);
-  file_readln=folder->file_folder; puffer_update();
   eol_jel=0;eol_pos=mime_parts[i].end;
   sor3[0]=0;
   do{
@@ -537,7 +532,6 @@ int total=0;
   if(i<0 || i>=mime_db) return 0;
   
   folder_seek(folder,mime_parts[i].start);
-  file_readln=folder->file_folder; puffer_update();
   eol_jel=0;eol_pos=mime_parts[i].end;
   /* Skipping Mail HEADER */
   do{
@@ -553,22 +547,23 @@ int total=0;
   return total;
 }
 
+void save_mail_source(folder_st *folder,rek_st *mail, char *fnev){
+FILE *f=fopen(fnev,"wb");
+void *p=malloc(mail->size);
+  if(!f || !p) return;
+  folder_seek(folder,mail->pos);
+  fread(p,1,mail->size,folder->file_folder);
+  fwrite(p,1,mail->size,f);
+  fclose(f);
+  free(p);
+}
+
+
 /*******************************************************************************
                 		--==>    M A I N   <==--
 *******************************************************************************/
 
 #if 0
-
-void save_mail_source(char *fnev,rek_st *mail){
-FILE *f=fopen(fnev,"wb");
-void *p=malloc(mail->size);
-if(!f || !p) return;
-folder_seek(folder,mail->pos);
-fread(p,1,mail->size,folder->file_folder);
-fwrite(p,1,mail->size,f);
-fclose(f);
-free(p);
-}
 
 void fatal(int n,char *s){
   fprintf(stderr,"mail: FATAL ERROR - %s\n",s);
