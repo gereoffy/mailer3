@@ -41,6 +41,7 @@ char message_id[256];
 int write_rek(folder_st *folder,int i,rek_st *mail){
   if(fseek(folder->file_index,i*sizeof(rek_st),SEEK_SET)) return 0;
   if(fwrite(mail,sizeof(rek_st),1,folder->file_index)!=1) return 0;
+  fflush(folder->file_index);
   return 1;
 }
 
@@ -58,6 +59,7 @@ static int folder_seek(folder_st* folder,int i){
   if(fseek(folder->file_folder,i,SEEK_SET)) return -1;
   file_readln=folder->file_folder;
   eof_jel=0; puffer_update();
+  sor_pos=puffer_pos+puffer_mut;
   return 0;
 }
 
@@ -166,7 +168,11 @@ int open_folder(folder_st* folder,char *folder_name,char *index_name,char *strin
     printf("after fread:  ftell=%ld  strings_pos=%d\n",ftell(folder->file_strings),folder->strings_pos);
   }
 
+  return 0;
+}
+
   /* Read folder, update index */
+int update_folder(folder_st* folder){
 
   if(folder_seek(folder,folder->folder_size)){ printf("Cannot seek folder to %d\n",sor_pos); return 6;}
 
