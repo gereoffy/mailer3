@@ -236,8 +236,7 @@ static int parse_mail(folder_st* folder,rek_st* mail){
 	  upcstr(sor,sor);
 	  if((strncmp(sor,"CONTENT-DISPOSITION:",20)==0 &&
               (strstr(sor,"ATTACHMENT") || strstr(sor,"FILENAME=")) ) ||
-	     (strncmp(sor,"CONTENT-TYPE:",13)==0 &&
-              (strstr(sor,"APPLICATION/") || strstr(sor,"NAME=")) ) )
+	     (strncmp(sor,"CONTENT-TYPE:",13)==0 && strstr(sor,"NAME=") ) )
 	    mail->flags|=MAILFLAG_ATTACH;
 	}
     }while(folder->mfs!=MFS_INBOX || strncmp(sor,"From ",5) );
