@@ -178,7 +178,7 @@ if(!eof_jel){ /* have new mail */
     eol_jel=0;eol_pos=-1;
     // parse header:
     do{
-      readln_sor(); if(eof_jel) break;
+      readln_sor2(folder->mfs,1); if(eof_jel) break;
       if(strncmp(sor,"From:",5)==0)mail.from=write_strings(iso(sor+5));
       if(strncmp(sor,"To:",3)==0)mail.to=write_strings(iso(sor+3));
       if(strncmp(sor,"Subject:",8)==0)mail.subject=write_strings(iso(sor+8));
@@ -187,7 +187,7 @@ if(!eof_jel){ /* have new mail */
     // parse body:
     do{
       if(eof_jel || eol_jel) break;
-      readln_sor();
+      readln_sor2(folder->mfs,0);
     }while(folder->mfs!=MFS_INBOX || strncmp(sor,"From ",5) );
     mail.msize=sor_pos-mail.msize;
     // store index (only if size!=0)
@@ -286,7 +286,7 @@ char *data;
   message_id[0]=0;
 
   do{
-    readln_sor();
+    readln_sor2(folder->mfs,header_ok);
     if(header_ok){
     /*--------------- We're in the Mail HEADER ------------*/
   
@@ -476,7 +476,7 @@ void save_part(folder_st *folder,int i,FILE *f2,char *replystr,int skip_header, 
   eol_jel=0;eol_pos=mime_parts[i].end;
   sor3[0]=0;
   do{
-    readln_sor();
+    readln_sor2(folder->mfs,header_ok);
     if(header_ok){
       if(sor[0]==0) header_ok=0;
       if(!skip_header) fprintf(f2,"%s%s\n",replystr,sor);
@@ -489,7 +489,7 @@ void save_part(folder_st *folder,int i,FILE *f2,char *replystr,int skip_header, 
 	     do{
 	       decode_b64(sor);
 	       fwrite(decoded,1,decoded_size,ft2);
-	       readln_sor();
+	       readln_sor2(folder->mfs,0);
 	     }while(!eol_jel && sor[0]);
 	     rewind(ft2);
 	     while(!feof(ft2)){
@@ -541,12 +541,12 @@ int total=0;
   eol_jel=0;eol_pos=mime_parts[i].end;
   /* Skipping Mail HEADER */
   do{
-    readln_sor();
+    readln_sor2(folder->mfs,0);
     if(sor[0]==0) break;
   }while(!eol_jel);
   /* Decoding Base64 to binary file */
   do{
-	readln_sor();
+	readln_sor2(folder->mfs,0);
 	decode_b64(sor);
 	total+=fwrite(decoded,1,decoded_size,ff);
   }while(!eol_jel && sor[0]);
