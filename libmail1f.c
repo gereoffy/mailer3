@@ -25,6 +25,11 @@ rek_st mail;
 folder_st default_folder={MFS_INBOX,0};
 folder_st *folder=&default_folder;
 
+char addr_list_t[MAX_ADDR][10];
+char addr_list_v[MAX_ADDR][128];
+int addr_count=0;
+char message_id[256];
+
 #include "string.inc.c"
 #include "iso.inc.c"
 #include "readln.inc.c"
@@ -258,6 +263,7 @@ int i,j;
 char usor[sormaxsize];
 char not_empty,header_ok;
 char field[256];   /* pl: "CONTENT_ENCODING:" */
+char *data;
 
   folder_seek(folder,mail->pos);
   file_readln=folder->file_folder;
@@ -273,6 +279,8 @@ char field[256];   /* pl: "CONTENT_ENCODING:" */
 
   header_ok=1; field[0]=0;
   not_empty=0;
+  addr_count=0;
+  message_id[0]=0;
 
   do{
     readln_sor();
@@ -283,13 +291,34 @@ char field[256];   /* pl: "CONTENT_ENCODING:" */
       
       upcstr(usor,sor);
       
+      data=sor+1;
       if(usor[0]!=' ' && usor[0]!=9){
         char *p=strchr(usor,':');
-	    if(!p) field[0]=0; else {
+	    if(!p){
+              field[0]=0;
+              data=sor;
+            } else {
 	      int l=p-usor;
-          if(l>255) l=255;
+              if(l>255) l=255;
 	      strncpy2n(field,usor,l);
+              data=sor+l+1;
 	    }
+      }
+      
+      if(strcmp(field,"FROM")==0 ||
+         strcmp(field,"REPLY-TO")==0 ||
+         strcmp(field,"SENDER")==0 ||
+         strcmp(field,"X-BEENTHERE")==0 ||
+         strcmp(field,"LIST-ID")==0 ||
+         strcmp(field,"CC")==0 ||
+         strcmp(field,"X-SENDER")==0) if(addr_count<MAX_ADDR){
+         strcpy(addr_list_t[addr_count],field);
+         strcpy(addr_list_v[addr_count],iso(data));
+         ++addr_count;
+      }
+
+      if(strcmp(field,"MESSAGE-ID")==0){
+          strcpy(message_id,data);
       }
 
       if(strcmp(field,"CONTENT-TYPE")==0){
