@@ -86,9 +86,8 @@ static int m_step(int old,int dist){
     if(old<0 || old>=MAIL_DB) break; //return -1;
     //if(!filter_selected || check_match(old))
     {
-    if(filter_deleted==2){
-      if(M_FLAGS(old)&MAILFLAG_DEL) --dist;
-    } else if(filter_deleted==1 || !(M_FLAGS(old)&MAILFLAG_DEL)){
+      if(filter_deleted==1 || !(M_FLAGS(old)&MAILFLAG_DEL) ||
+        (filter_deleted==2 && (M_FLAGS(old)&MAILFLAG_DEL)) )
       if(!filter_extra || M_FLAGS(old)&MAILFLAG_EXTRA)
       if(!filter_attach || M_FLAGS(old)&MAILFLAG_ATTACH)
       if(!filter_list || (filter_list==1 && M_FLAGS(old)&MAILFLAG_LIST) ||
@@ -96,7 +95,6 @@ static int m_step(int old,int dist){
       if(!filter_selected || (filter_selected==1 && M_FLAGS(old)&MAILFLAG_SELECTED) ||
          (filter_selected==2 && !(M_FLAGS(old)&MAILFLAG_SELECTED)))
 	--dist;
-    }
     }
   }
   return old;
