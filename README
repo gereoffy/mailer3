@@ -69,6 +69,9 @@ ESC+ENTER - read raw mail source  (debug)
  P      - toggle auto quoted-Printable
  I      - toggle case-Insensitive search
  W      - toggle line-Wrapping (default: On)
+ 
+ u	- upgrade properties of current mail
+ U	- upgrade properties of all mails in this folder
 
 *=not yet implemented
 
