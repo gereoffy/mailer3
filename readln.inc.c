@@ -73,6 +73,7 @@ register char c;
   if(puffer_size<=puffer_mut)
     if(!puffer_update()){ // no more data...
       eof_jel=0; // clear eof flag, as we're not at EOF yet
+      sor_next=0;
       return 0;
     }
   sor_next=puffer[puffer_mut];
