@@ -1,5 +1,5 @@
 
 1. Edit configuration in "config.h"
-2. Run either of "./m" or "./m-ansi"
+2. Run "./c"
 3. Rename executable "a" to what you want and copy to PATH
 4. Edit address_book.txt and signature.txt (if you want...)
