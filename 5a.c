@@ -112,8 +112,8 @@ int i;
           ),
 	  ((M_FLAGS(y)&MAILFLAG_ATTACH) ? '+' : ' '),
         xs1,xs1,strofs2(cim_ertelmezo(M_FROM(y),from_mod),xx),
-//		    M_MSIZE(y),
-		    (y+1),
+		    M_MSIZE(y),
+//		    (y+1),
 		    xs2,xs2,strofs2(M_SUBJ(y),xx)
 	    );
     else
