@@ -6,6 +6,8 @@
 #include "config.h"
 #include "term1.c"
 
+#define VERSION "GyikSoft Mailer for UNIX v3.1 by Arpi/ESP-team (http://esp-team.scene.hu)\n\n"
+
 /******************************************************************************/
 
 /* kirajzolando sorok szama: */
@@ -188,11 +190,21 @@ void compose(){
   if(gomb=='y'){
     FILE *f_cim=fopen(cim_temp_nev,"wb");
     fprintf(f_cim,"From: %s\nTo: %s\nSubject: %s\n",_from,_to,_subject);
-    fprintf(f_cim,"X-Mailer: GyikSoft Mailer for UNIX v3.0 by www.esp-team.org\n\n");
+    fprintf(f_cim,"X-Mailer: " VERSION);
     fclose(f_cim);
     { char xxx[256];
+#ifdef COPYSELF
+      printf("Copyself...");fflush(stdout);
+      sprintf(xxx,"echo \"From %s\" >>" COPYSELF,cim_ertelmezo(_to,1)); exec2(xxx,"");
+      sprintf(xxx,"echo \"Date: %s\" >>" COPYSELF,_date); exec2(xxx,"");
+      sprintf(xxx,"cat %s %s >>" COPYSELF,cim_temp_nev,temp_nev); exec2(xxx,"");
+      exec2("echo >>" COPYSELF,"");
+      printf("OK\n");
+#endif
+      printf("Sending mail...");fflush(stdout);
       sprintf(xxx,"cat %s %s | " SENDMAIL " %s",cim_temp_nev,temp_nev,cim_ertelmezo(_to,1));
       exec2(xxx,"");
+      printf("OK\n");
     }
     return;
   }
@@ -242,7 +254,7 @@ last_new_mails=new_mails;
 /***************** BEGIN ************************/
 load_termcap(NULL);
 getch2_enable();
-/* waitkey(); */
+/*waitkey();*/
 clrscr();
 
 yy=MAIL_DB-1;
