@@ -138,7 +138,7 @@ int open_folder(folder_st* folder,char *folder_name,char *index_name,char *strin
   if((strings_pos=ftell(folder->file_strings))==0){
     printf("Creating new STRINGS file\n");
     write_strings("");
-    printf("ftell=%d  strings_pos=%d\n",ftell(folder->file_strings),strings_pos);
+    printf("ftell=%ld  strings_pos=%d\n",ftell(folder->file_strings),strings_pos);
   }
 
   /* Read folder, build index */
@@ -153,11 +153,11 @@ if(!eof_jel){ /* van uj level! */
   if(strings){
     strings_end=&strings[(strings_pos+STRINGS_MALLOC)&(~15)];
     rewind(folder->file_strings);
-    printf("after rewind:  ftell=%d  strings_pos=%d\n",ftell(folder->file_strings),strings_pos);
+    printf("after rewind:  ftell=%ld  strings_pos=%d\n",ftell(folder->file_strings),strings_pos);
     fread(strings,1,strings_pos,folder->file_strings);
     fseek(folder->file_strings,strings_pos,SEEK_SET);
     /*fflush(folder->file_strings);*/
-    printf("after fread:  ftell=%d  strings_pos=%d\n",ftell(folder->file_strings),strings_pos);
+    printf("after fread:  ftell=%ld  strings_pos=%d\n",ftell(folder->file_strings),strings_pos);
   }
 #ifdef STRINGS_HASH
   strings_hash=malloc(sizeof(int)*STRINGS_HASH);
