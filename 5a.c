@@ -6,7 +6,7 @@
 #include "config.h"
 #include "term1.c"
 
-#define VERSION "GyikSoft Mailer for UNIX v3.2 by Arpi/ESP-team (http://esp-team.scene.hu)\n\n"
+#define VERSION "GyikSoft Mailer for UNIX v3.5 by Arpi/ESP-team (http://esp-team.scene.hu)\n\n"
 
 /******************************************************************************/
 
@@ -40,12 +40,14 @@ int menu_y0=0;
 int refresh_time;
 
 #define MENUTYPE_ADDRBOOK 1
+#define MENUTYPE_ADDRLIST 2
 #define MENUTYPE_SELFOLDER 3
 #define MENUTYPE_FILESELECTOR 4
 #define MENUTYPE_ENCODING 5
 #define MENUTYPE_MULTIPART 6
 
 #include "menu1.c"
+#include "menu2.c"
 
 /*******************************************************************************
                 		--==>    R E D R A W   <==--
@@ -134,7 +136,7 @@ int i;
           fclose(f2);
           exec2(EDITOR_CMD,temp_nev);
         }
-      }
+      } else
       if(gomb=='s' || gomb==KEY_F+2){
         char nev[256];
         char *n=mime_parts[menu_yy].name;
@@ -197,6 +199,8 @@ int compose(){
   if(gomb=='y'){
     FILE *f_cim=fopen(cim_temp_nev,"wb");
     fprintf(f_cim,"From: %s\nTo: %s\nSubject: %s\n",_from,_to,_subject);
+    if(message_id[0]) 
+      fprintf(f_cim,"In-Reply-To: %s\n",message_id);
     fprintf(f_cim,"X-Mailer: " VERSION);
     fclose(f_cim);
     clrscr();refresh();
@@ -286,7 +290,7 @@ int check_match(int i){
 void delete_mails(){
 int i=0,j;
   while(i<MAIL_DB && !(M_FLAGS(i)&MAILFLAG_DEL)) i++;
-  if(i>=MAIL_DB) return; /* nincs mit torolni */
+  if(i>=MAIL_DB) return; // nincs mit torolni
   j=i;
   printf("Deleting mails...\n");
   while(1){
@@ -302,6 +306,7 @@ int i=0,j;
 #if 0
   while(j<i){
     printf("Clearing mail %d\n",j);
+//    M_SIZE(j)=0;
     M_MSIZE(j)=0;
     UPDATE_REK(j);
     ++j;
@@ -333,13 +338,29 @@ void fatal(int n,char *s){
 int main(int argc,char *argv[]){
 int folder_size=0;
 char *foldername;
+char *foldername_idx;
+char *foldername_str;
 
-  if(argc>1) foldername=argv[1]; else foldername=getenv("MAIL");
+  if(argc>1){
+      foldername=argv[1];
+      foldername_idx=malloc(strlen(foldername)+8);
+      foldername_str=malloc(strlen(foldername)+8);
+      sprintf(foldername_idx,"%s.idx",foldername);
+      sprintf(foldername_str,"%s.str",foldername);
+  } else {
+      foldername=getenv("MAIL");
+      if(!foldername){
+          printf("$MAIL not defined - you must specify folder file\n");
+          exit(1);
+      }
+      foldername_idx="MAIL.idx";
+      foldername_str="MAIL.str";
+  }
 
 restart:
 { int i;
   printf("Reading folder...\n");
-  i=open_folder(folder,foldername,"mail.idx","mail.str");
+  i=open_folder(folder,foldername,foldername_idx,foldername_str);
   printf("open_folder return value=%d\n",i);
   if(i) fatal(1,"Cannot open folder/index");
   if(load_folder(folder)) fatal(2,"Cannot load index");
@@ -352,7 +373,13 @@ last_new_mails=new_mails;
 /***************** BEGIN ************************/
 load_termcap(NULL);
 getch2_enable();
+
+//printf("key1=%d\n",waitkey());
+//printf("key2=%d\n",waitkey());
+//printf("key3=%d\n",waitkey());
 /*waitkey();*/
+
+
 clrscr();
 
 yy=MAIL_DB-1;
@@ -401,6 +428,12 @@ do{
     goto ujra;
   }
 
+  if(gomb==KEY_ESC_ENTER){
+    save_mail_source(temp_nev,&folder->f_mails[yy]);
+    exec2(EDITOR_CMD,temp_nev);
+    goto ujra;
+  }
+
   /* Select for deletion */
   if(gomb==KEY_DEL || gomb=='d' || gomb=='D'){
     if(gomb=='D')
@@ -426,6 +459,8 @@ do{
       write_signature(f2);
       fclose(f2);
     }
+    addr_count=0;
+    message_id[0]=0;
     compose();
     goto ujra;
   }
@@ -458,6 +493,12 @@ do{
       }
       if(reply) write_signature(f2);
       fclose(f2);
+    }
+    if(reply && addr_count>1){
+        // select reply-to or from address:
+        int ret=draw_menu_addrlist(addr_count,MENUTYPE_ADDRLIST,0);
+        if(ret>=0) strcpy(_to,addr_list_v[ret]);
+        if(ret==-1) goto ujra; // ESC
     }
     if(compose()){
       if(reply) M_FLAGS(yy)|=MAILFLAG_REPLY;
@@ -559,7 +600,7 @@ delete_mails();
 free_folder(folder);
 close_folder(folder);
 
-truncate("mail.idx",sizeof(rek_st)*MAIL_DB);
+truncate(foldername_idx,sizeof(rek_st)*MAIL_DB);
 
 unlink(temp_nev);
 unlink(cim_temp_nev);
