@@ -547,6 +547,25 @@ do{
     gomb='R'; //goto ujra;
   }
 
+  /* Dump folder data */
+  if(gomb=='}'){
+    char nev[256];
+    strcpy(nev,"mail-data.txt");
+    box_input(10,60,"Save as:",nev);
+    if(gomb==KEY_ENTER){
+      FILE* f=fopen(nev,"wb");
+      if(f){
+        int i=m_step(-1,1);
+	while(i<MAIL_DB){
+	  fprintf(f,"%s|%s\n",cim_ertelmezo(M_FROM(i),from_mod),M_SUBJ(i));
+          i=m_step(i,1);
+	}
+	fclose(f);
+      }
+    }
+    goto ujra;
+  }
+
   /* COMPOSE */ 
   if(gomb=='c'){
     strcpy(_from,__from);
