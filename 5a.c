@@ -475,9 +475,18 @@ do{
   /* REPLY & FORWARD */
   if(gomb=='r' || gomb=='f'){
     int reply=(gomb=='r');
+    const char repre[]="Re: ";
     strcpy(_from,__from);
     strcpy(_to,reply? M_FROM(yy) : M_TO(yy));
-    strcpy(_subject,reply?"Re: ":"Fwd: ");strcat(_subject,M_SUBJ(yy));
+    if(reply) {
+      if(strncmp(repre,M_SUBJ(yy),sizeof(repre)-1))
+       strcpy(_subject,repre);
+      else
+       _subject[0]='\0';
+    } else {
+      strcpy(_subject,"Fwd: ");
+    }
+    strcat(_subject,M_SUBJ(yy));
     get_date(_date);
     { FILE *f2=fopen(temp_nev,"wb");
       if(!f2){printf("Cannot create tempfile\n");return(-1);}
