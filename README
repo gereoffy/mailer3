@@ -1,6 +1,6 @@
 
-GyikSoft Mailer for UNIX  v3.0pre1    (C) 1997-99 by A'rpi & Pilu of ESP-team
-========================  ========
+GyikSoft Mailer for UNIX  v3.1    (C) 1997-2000 by A'rpi & Pilu of ESP-team
+========================  ====
 
 This is a simple e-mail reader program for UNIX, based on the original DOS
 version called 'GyikSoft Mailer for DOS v3.4' written in Borland Pascal.
@@ -10,7 +10,7 @@ Currently Pegasus Mail for DOS (.PMM files) and standard UNIX folders
 New in Version 3:
 ~~~~~~~~~~~~~~~~~
 - Folder handler is separated into a library. Features:
-  Indexed folders -> much faster re-reading, save flags
+  Indexed folders -> much faster re-reading, save flags, less memory usage
 - Better terminal I/O routines -> understand codes of most terminals, but
   use TERMCAP if exists. Doesn't require (N)CURSES !
 
@@ -18,13 +18,13 @@ New in Version 3:
 Main features:
 ~~~~~~~~~~~~~~
 - Support MIME multipart mail format
-- Decode BASE64 attachments and mails
-- Decode quoted-printable mails
+- Decode BASE64 attachments and messages
+- Decode quoted-printable messages
 - Display ISO-encoded headers correctly (many other mailer doesn't)
 - Read, Reply, Forward, Compose functions
 * - Multi-level address-book
-- New mail notification (checked every 5 seconds)
-- Optimized for slow TELNET connection (minimal redrawing)
+- New mail notification (checked every 2 seconds)
+- Optimized for slow TELNET connection (minimal redrawing, one-key commands)
 - Optimized for speed (own buffered string reader, string routines)
 
 History:
@@ -78,4 +78,4 @@ Far future:
 - HTML support
 - Internal reader prog
 
-Send bugreports and ideas to <arpi@esp.kign.org>
+Send bugreports and ideas to <arpi@esp-team.scene.hu>
