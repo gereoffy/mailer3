@@ -24,12 +24,13 @@ int readln_sor2(int mfs, int header) {
 int i=0;
 register char c;
   sor_pos=puffer_pos+puffer_mut;
-  sor_next=0;
-again:
   if(sor_pos>=eol_pos){eol_jel=1;sor[0]=0;return(-1);}
-  
-  if(mfs!=MFS_PMM && puffer_mut+(sormaxsize-i)+2<puffer_size){
+
+again:
+  sor_next=0;
+  if(1 && mfs!=MFS_PMM && puffer_mut+(sormaxsize-i)+2<puffer_size){
     /* Optimized version! */
+    int i0=i;
     register char *p=&puffer[puffer_mut];
     do{
       c=p[0]; if(c==10) break; sor[i++]=c;
@@ -54,7 +55,7 @@ again:
       p+=16;
 #endif      
     }while(i<sormaxsize-18);
-    puffer_mut+=i+1;
+    puffer_mut+=i-i0+1;
     if(i && sor[i-1]==13) --i;
     sor[i]=0;
   } else {
@@ -74,12 +75,13 @@ again:
       eof_jel=0; // clear eof flag, as we're not at EOF yet
       return 0;
     }
-
   }
   sor_next=puffer[puffer_mut];
+//  if(header) printf("sor_next=%d '%c'\n",sor_next,sor_next);
   if(header && (sor_next==9 || sor_next==32)){ // multi-line header
     goto again;
   }
+//  if(header) printf("sor(%d)='%s'\n",i,sor);
   return(0);
 }
 
