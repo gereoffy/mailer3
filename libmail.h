@@ -82,6 +82,7 @@ extern void close_folder(folder_st *folder);
 
 //extern int read_rek(folder_st *folder,int i,rek_st *mail);
 extern int write_rek(folder_st *folder,int i,rek_st *mail);
+extern int upgrade_rek(folder_st* folder,rek_st* mail);
 
 extern void open_mail(folder_st *folder,rek_st *mail);
 extern void save_part(folder_st *folder,int i,FILE *f2,char *replystr,int skip_header,int linewrap);
