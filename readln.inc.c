@@ -76,10 +76,11 @@ again:
       eof_jel=0; // clear eof flag, as we're not at EOF yet
       return 0;
     }
+
   }
   sor_next=puffer[puffer_mut];
-//  if(header) printf("sor_next=%d '%c'\n",sor_next,sor_next);
-  if(header && (sor_next==9 || sor_next==32)){ // multi-line header
+  if(header && (sor_next==9 || sor_next==32) && i){ // multi-line header
+//    printf("[%d] sor_next=%d '%c' sor='%s'\n",i,sor_next,(sor_next<32) ? ' ' : sor_next,sor);
     goto again;
   }
 //  if(header) printf("sor(%d)='%s'\n",i,sor);
