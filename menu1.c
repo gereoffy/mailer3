@@ -48,4 +48,6 @@ int draw_menu_mimeparts(int ys,int tipus,char keyflag){
   return(-1);
 }
 
+#undef MENUITEMS2
+#undef MENUITEMS1
 
