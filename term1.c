@@ -24,7 +24,7 @@ int waitkey(){
 void clrscr(void){                              /* CLS + HOME       */
   get_screen_size();
   term_xs=screen_width;
-  term_ys=screen_height;
+  term_ys=screen_height-1;
   printf("\x1B[2J\x1B[1;1f");
 }
 
