@@ -216,6 +216,7 @@ static int parse_mail(folder_st* folder,rek_st* mail){
     mail->pos=sor_pos;
     mail->from=mail->to=mail->subject=0;
 //  mail->flags=MAILFLAG_NEW;
+    mail->flags&=~MAILFLAG_ATTACH;
     eol_jel=0;eol_pos=-1;
     // parse header:
     do{
@@ -229,6 +230,16 @@ static int parse_mail(folder_st* folder,rek_st* mail){
     do{
       if(eof_jel || eol_jel) break;
       readln_sor2(folder->mfs,0);
+      if(!(mail->flags&MAILFLAG_ATTACH))
+        if(strncasecmp(sor,"CONTENT-",8)==0){
+	  readln_sor2_cont(folder->mfs); // read the rest of the header line
+	  upcstr(sor,sor);
+	  if((strncmp(sor,"CONTENT-DISPOSITION:",20)==0 &&
+              (strstr(sor,"ATTACHMENT") || strstr(sor,"FILENAME=")) ) ||
+	     (strncmp(sor,"CONTENT-TYPE:",13)==0 &&
+              (strstr(sor,"APPLICATION/") || strstr(sor,"NAME=")) ) )
+	    mail->flags|=MAILFLAG_ATTACH;
+	}
     }while(folder->mfs!=MFS_INBOX || strncmp(sor,"From ",5) );
     mail->msize=sor_pos-mail->msize;
     mail->size=sor_pos-mail->pos;
@@ -263,8 +274,8 @@ if(!eof_jel){ /* have new mail */
         (folder->mail_db+INDEX_ALLOC)*sizeof(rek_st) );
       folder->f_mails_size=folder->mail_db+INDEX_ALLOC;
     }
+    folder->f_mails[folder->mail_db].flags=MAILFLAG_NEW;
     if(parse_mail(folder,&folder->f_mails[folder->mail_db])>0){
-      folder->f_mails[folder->mail_db].flags=MAILFLAG_NEW;
       write_rek(folder,folder->mail_db,&folder->f_mails[folder->mail_db]);
       ++folder->mail_db;
     }
