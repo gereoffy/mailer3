@@ -19,10 +19,11 @@ static int puffer_update(){
   eof_jel=1;return 0;
 }
 
+static char sor_next=0;
+
 static int readln_sor2(int mfs, int header) {
 int i=0;
 register char c;
-char sor_next;
   sor_pos=puffer_pos+puffer_mut;
   if(sor_pos>=eol_pos){eol_jel=1;sor[0]=0;return(-1);}
 
@@ -83,5 +84,30 @@ again:
   }
 //  if(header) printf("sor(%d)='%s'\n",i,sor);
   return(0);
+}
+
+static int readln_sor2_cont(int mfs) {
+int i=strlen(sor);
+while(1){
+  if(sor_next!=9 && sor_next!=32) return 0;
+  sor_next=0;
+  do{
+    register char c;
+    if(puffer_size<=puffer_mut){
+        if(!puffer_update()){sor[i]=0;return(-2);}
+    }
+    c=puffer[puffer_mut++];
+    if(c==26 && mfs==MFS_PMM){eol_jel=1;return(-1);}
+    if(c==10) break;
+    if(c!=13) sor[i++]=c;
+  }while(i<sormaxsize);
+  sor[i]=0;
+  if(puffer_size<=puffer_mut)
+    if(!puffer_update()){ // no more data...
+      eof_jel=0; // clear eof flag, as we're not at EOF yet
+      return 0;
+    }
+  sor_next=puffer[puffer_mut];
+} // while(1)
 }
 
