@@ -47,10 +47,10 @@ static int getch2_key_db=0;
 #endif
 
 static char term_buffer[4096];
-static char term_buffer2[4096];
-static char *term_p=term_buffer2;
+static char term_buffer2[512];
 
 static void termcap_add(char *id,int code){
+char *term_p=term_buffer2;
 char *p=tgetstr(id,&term_p);
   if(!p) return;
   if(getch2_key_db>=MAX_KEYS) return;
