@@ -38,6 +38,7 @@ typedef struct {
   char *f_strings;
   char *strings_end;
   int  *strings_hash;
+  int  *strings_hash_full;
   FILE *file_folder;
   FILE *file_index;
   FILE *file_strings;
