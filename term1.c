@@ -107,7 +107,7 @@ char sor[1024];
       memmove(sor+x+xbase-1,sor+x+xbase,strlen(sor)-x-xbase+1);
       gomb=KEY_LEFT; //	--x;
     }
-    if(gomb==KEY_LEFT) if(x>0) --x; else if(xbase>0) --xbase;
+    if(gomb==KEY_LEFT){ if(x>0) --x; else if(xbase>0) --xbase;}
     if(gomb==KEY_HOME) x=xbase=0;
     if(gomb==KEY_END){
         x=strlen(sor);
