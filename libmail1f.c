@@ -404,13 +404,28 @@ if(mime_db>2){
 
 /************************** SAVE_PART *************************************/
 
+void wrap_print(FILE *f2,char *replystr,char* sor){
+  unsigned char* p=sor;
+// filter
+       while(*p){
+           if((*p!=9 && *p<32) || (*p>=127 && *p<224) || *p>254) *p='.';
+           ++p;
+       }
+// wrap
+        while(strlen(sor)>96){
+          fprintf(f2,"%s%.96s\n",replystr,sor);
+          sor+=96; //memmove(sor,sor+96,strlen(sor)-96+1);
+        }
+        fprintf(f2,"%s%s\n",replystr,sor);
+}
+
 /*  Writes 'i'th part to file 'f2', using reply prefix 'replystr' */
 void save_part(folder_st *folder,int i,FILE *f2,char *replystr,int skip_header){
   int b64_jel=(mime_parts[i].flags & MIMEFLAG_B64);
   int header_ok=1;
   FILE *ft2;
   char sor3[sormaxsize];
-  char* p;
+//  unsigned char* p;
   
   if(i<0 || i>=mime_db) return;
   
@@ -437,8 +452,7 @@ void save_part(folder_st *folder,int i,FILE *f2,char *replystr,int skip_header){
 	     rewind(ft2);
 	     while(!feof(ft2)){
 	       fgets(sor,LINEWRAP,ft2);sor[strlen(sor)-1]=0;
-	       while((p=strchr(sor,13))) (*p)=' ';
-           fprintf(f2,"%s%s\n",replystr,sor);
+               wrap_print(f2,replystr,sor);
 	     }
 	     fclose(ft2);
          unlink(cim_temp_nev);
@@ -452,19 +466,15 @@ void save_part(folder_st *folder,int i,FILE *f2,char *replystr,int skip_header){
         strcat(sor3,hexa2ascii(sor,0));
       } else {
         strcat(sor3,hexa2ascii(sor,0));
-        fprintf(f2,"%s%s\n",replystr,sor3);
-        sor3[0]=0;
-      }
-      if(strlen(sor3)>LINEWRAP){
-        fprintf(f2,"%s%s\n",replystr,sor3);
+        wrap_print(f2,replystr,sor3);
         sor3[0]=0;
       }
     } else {
-      fprintf(f2,"%s%s\n",replystr,sor);
+        wrap_print(f2,replystr,sor);
     }
 
   }while(!eol_jel);
-  if(sor3[0]) fprintf(f2,"%s%s\n",replystr,sor3);
+  if(sor3[0]) wrap_print(f2,replystr,sor3);
 }
 
 
