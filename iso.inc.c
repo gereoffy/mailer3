@@ -187,11 +187,14 @@ char* hexa2ascii(char* sor,int ulflag)
 char* iso(char* sor){
 char sor1[4*256],sor3[4*256],kodlap[4*256],temp[4*256];
 char isoflag=0;
+char isocnt=0;
 char iso_kodolas='Q';
 int  i;
 char c;
 char *t=temp;
 char *s=0;
+
+//printf("***ISO*** '%s'\n",sor);
 
   /*-- ISO-kodok ertelmezese --*/
   i=0;
@@ -202,26 +205,35 @@ char *s=0;
     c=sor1[i++];
     if((isoflag) && (c=='?') && (sor1[i]=='=')){
       *s=0;
-      if(iso_kodolas=='B') s=(char*)decode_b64(sor3); else s=hexa2ascii(sor3,1);
+      if(iso_kodolas=='B' || iso_kodolas=='b')
+        s=(char*)decode_b64(sor3); else s=hexa2ascii(sor3,1);
       while((c=*s++)) *t++=c;
-	  isoflag=0;
-      i++; continue;
+      isoflag=0;
+      isocnt=2;
+      i++;
+      continue;
     }
     if((!isoflag) && (c=='=') && (sor1[i]=='?')){
       int j=i+1;
-      while ((j<=strlen(sor1)) && (sor1[j]!='?'))j++;
+      if(isocnt==1) --t; // skip WS between ISO blocks
+      while((j<=strlen(sor1)) && (sor1[j]!='?')) j++;
 //      printf("len(sor1)=%d i=%d j=%d\n",strlen(sor1),i,j);
       //len(sor1)=76 i=2 j=3
       if(j-i-5>0) strncpy(kodlap,sor1+i+5,j-i-5);
       isoflag=1; s=sor3;
       iso_kodolas=sor1[j+1];
-      i=j+3; continue;
+      i=j+3;
+      continue;
+    }
+    if(isocnt){
+	if(c==9 || c==32) --isocnt; else isocnt=0;
     }
     if(isoflag) *s++=c; else *t++=c;
   }
   if(isoflag){
     *s=0;
-    if(iso_kodolas=='B') s=(char*)decode_b64(sor3); else s=hexa2ascii(sor3,1);
+    if(iso_kodolas=='B' || iso_kodolas=='b')
+        s=(char*)decode_b64(sor3); else s=hexa2ascii(sor3,1);
     while((c=*s++)) *t++=c;
   }
   while(t>temp && t[-1]==32) --t;  /* nyir_hatul */
