@@ -604,7 +604,7 @@ do{
     goto ujra;
   }
 
-  /* Select for deletion */
+  /* Invert selection */
   if(gomb==KEY_INSERT){
     M_FLAGS(yy)^=MAILFLAG_SELECTED;
     UPDATE_REK(yy);
@@ -642,6 +642,15 @@ do{
         break;
       case '*': M_FLAGS(i)^=ret; break;
       }
+    }
+    goto ujra;
+  }
+
+  /* select messages by number */
+  if(gomb=='/'){
+    int i=yy;
+    while((i=m_step(i,1))<MAIL_DB){
+      M_FLAGS(i)^=MAILFLAG_SELECTED;
     }
     goto ujra;
   }
