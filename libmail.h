@@ -77,6 +77,7 @@ extern char sor[sormaxsize];
 extern char sor2[sormaxsize];
 
 extern int open_folder(folder_st* folder,char *folder_name,char *index_name,char *strings_name);
+extern void full_hash_strings(folder_st* folder);
 extern int update_folder(folder_st* folder);
 extern void close_folder(folder_st *folder);
 
