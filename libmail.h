@@ -91,6 +91,7 @@ extern void open_mail(folder_st *folder,rek_st *mail);
 extern void save_part(folder_st *folder,int i,FILE *f2,char *replystr,int skip_header,int linewrap);
 extern int save_attachment(folder_st *folder,int i,FILE *ff);
 extern void save_mail_source(folder_st *folder,rek_st *mail, char *fnev);
+extern void save_mail_source_file(folder_st *folder,rek_st *mail, FILE* f);
 
 extern char* cim_ertelmezo(char *sor,int from_mod);
 extern void kodlap_generalo();
