@@ -210,7 +210,7 @@ char *s=0;
     if((!isoflag) && (c=='=') && (sor1[i]=='?')){
       int j=i+1;
       while ((j<=strlen(sor1)) && (sor1[j]!='?'))j++;
-      printf("len(sor1)=%d i=%d j=%d\n",strlen(sor1),i,j);
+//      printf("len(sor1)=%d i=%d j=%d\n",strlen(sor1),i,j);
       //len(sor1)=76 i=2 j=3
       if(j-i-5>0) strncpy(kodlap,sor1+i+5,j-i-5);
       isoflag=1; s=sor3;
