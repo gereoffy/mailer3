@@ -185,7 +185,7 @@ char* hexa2ascii(char* sor,int ulflag)
 
 
 char* iso(char* sor){
-char sor1[256],sor3[256],kodlap[256],temp[256];
+char sor1[4*256],sor3[4*256],kodlap[4*256],temp[4*256];
 char isoflag=0;
 char iso_kodolas='Q';
 int  i;
@@ -195,7 +195,8 @@ char *s=0;
 
   /*-- ISO-kodok ertelmezese --*/
   i=0;
-  strcpy(sor1,sor);
+//  strcpy(sor1,sor);
+  strncpy(sor1,sor,255); sor1[255]=0;
   strcpy(kodlap,"?");
   while (i<strlen(sor1)){
     c=sor1[i++];
@@ -209,7 +210,9 @@ char *s=0;
     if((!isoflag) && (c=='=') && (sor1[i]=='?')){
       int j=i+1;
       while ((j<=strlen(sor1)) && (sor1[j]!='?'))j++;
-      strncpy(kodlap,sor1+i+5,j-i-5);
+      printf("len(sor1)=%d i=%d j=%d\n",strlen(sor1),i,j);
+      //len(sor1)=76 i=2 j=3
+      if(j-i-5>0) strncpy(kodlap,sor1+i+5,j-i-5);
       isoflag=1; s=sor3;
       iso_kodolas=sor1[j+1];
       i=j+3; continue;
