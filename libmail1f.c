@@ -100,7 +100,8 @@ static int write_strings(char *str){
     if(strings) memcpy(&strings[strings_pos],str,len);
   }
 #endif
-  i=fwrite(str,1,len,folder->file_strings);
+/*  if(folder->mail_db<5) printf("ftell=%d  strings_pos=%d\n",ftell(folder->file_strings),strings_pos); */
+  i=fwrite(str,1,len,folder->file_strings);/* fflush(folder->file_strings); */
   if(i!=len) return 0; /* !!! */
   strings_pos+=len;
   if(strings_hash) strings_hash[hash]=tmp;
@@ -120,17 +121,25 @@ int open_folder(folder_st* folder,char *folder_name,char *index_name,char *strin
 /*  printf("Index size = %d\n",folder->mail_db); */
   if(folder->mail_db % sizeof(rek_st)) return 4; /* invalid filesize */
   folder->mail_db/=sizeof(rek_st);
+  printf("mail_db=%d\n",folder->mail_db);
   if(!folder->mail_db)
     sor_pos=(folder->mfs==MFS_PMM) ? 128 : 0;
   else {
     if(!read_rek(folder,folder->mail_db-1,&mail)) return 5;
     sor_pos=mail.pos+mail.size;
   }
-  if(folder_seek(folder,sor_pos)) return 6;
+  if(folder_seek(folder,sor_pos)){ printf("Cannot seek folder to %d\n",sor_pos); return 6;}
 
   if(!(folder->file_strings=fopen(strings_name,"ab+"))) return 3;
+  fclose(folder->file_strings);
+  if(!(folder->file_strings=fopen(strings_name,"rb+"))) return 3;
+  fseek(folder->file_strings,0,SEEK_END);
   strings=NULL;
-  if((strings_pos=ftell(folder->file_strings))==0) write_strings("");
+  if((strings_pos=ftell(folder->file_strings))==0){
+    printf("Creating new STRINGS file\n");
+    write_strings("");
+    printf("ftell=%d  strings_pos=%d\n",ftell(folder->file_strings),strings_pos);
+  }
 
   /* Read folder, build index */
   file_readln=folder->file_folder; eof_jel=0;
@@ -144,7 +153,11 @@ if(!eof_jel){ /* van uj level! */
   if(strings){
     strings_end=&strings[(strings_pos+STRINGS_MALLOC)&(~15)];
     rewind(folder->file_strings);
+    printf("after rewind:  ftell=%d  strings_pos=%d\n",ftell(folder->file_strings),strings_pos);
     fread(strings,1,strings_pos,folder->file_strings);
+    fseek(folder->file_strings,strings_pos,SEEK_SET);
+    /*fflush(folder->file_strings);*/
+    printf("after fread:  ftell=%d  strings_pos=%d\n",ftell(folder->file_strings),strings_pos);
   }
 #ifdef STRINGS_HASH
   strings_hash=malloc(sizeof(int)*STRINGS_HASH);
