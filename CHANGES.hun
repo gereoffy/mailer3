@@ -1,12 +1,29 @@
 ChangeLog: (sorry, it's hungarian...)
 ==========
 
-99/08-09/??.   [LINUX]      v3.0
+2000/09/14.   [LINUX,IRIX]      v3.1
+~~~~~~~~~~~
+- portolas sgi irix 5-re (tcgetattr/tcsetattr helyett ioctl() hivasok)
+- par kisebb bugfix
+  - hibakod visszadasa open_folder()-ben, return 3 helyett is return 2 volt
+  - "From:" stb mezok parse-olasanal eggyel tobb karaktert ugrott at
+    (elvileg nem lenne baj mivel az mindig space kell legyen, de ezt csak
+    az RFC biztositja, valojaban lehet ott 0 (sorveg) is es akkor ciki)
+  - fflush()-ok berakasa, irix miatt
+- Copyself support
+
+99/09/05.   [IRIX]      v3.01
+~~~~~~~~~
+- par kisebb javitas hogy menjen irix 6-on is jol
+  elsosorban a file-kezeles korul (fopen mode), mert az irix-en kicsit
+  maskepp megy (irix-en: man fopen, ott BUGS section)
+
+99/08-09/02.   [LINUX]      v3.0
 ~~~~~~~~~~~~
 - folder dolgok kulon szedve -> libMail  (ez mar indexel)
 - terminal IO kulon szedve -> getch2.c es term1.c  (mostmar nem kell (N)CURSES)
 - main() resz ujrairva, de sok a cut&paste a 4.c-bol...
-
+...
 
 99/08/19.   [LINUX]      v2.1
 ~~~~~~~~~
