@@ -2,17 +2,16 @@
 /*  **  Buffered TEXTFILE READLN routine v2.0   (C) 1998-99. by GyikSoft  **  */
 /******************************************************************************/
 
-char puffer[PUFFSIZE];
-int puffer_pos=0;
-int puffer_size=0;
-int puffer_mut=0;
-unsigned int sor_pos,eol_pos;
-int eof_jel=0;
-int eol_jel=0;
-char sor_next=0;
-FILE *file_readln=NULL;   /* used for readln_sor(); function */
+static char puffer[PUFFSIZE];
+static int puffer_pos=0;
+static int puffer_size=0;
+static int puffer_mut=0;
+static unsigned int sor_pos,eol_pos;
+static int eof_jel=0;
+static int eol_jel=0;
+static FILE *file_readln=NULL;   /* used for readln_sor(); function */
 
-int puffer_update(){
+static int puffer_update(){
   puffer_pos=ftell(file_readln);
   puffer_size=fread(&puffer,1,PUFFSIZE,file_readln);
   puffer_mut=0;
@@ -20,9 +19,10 @@ int puffer_update(){
   eof_jel=1;return 0;
 }
 
-int readln_sor2(int mfs, int header) {
+static int readln_sor2(int mfs, int header) {
 int i=0;
 register char c;
+char sor_next;
   sor_pos=puffer_pos+puffer_mut;
   if(sor_pos>=eol_pos){eol_jel=1;sor[0]=0;return(-1);}
 
