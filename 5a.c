@@ -574,6 +574,24 @@ do{
     goto ujra;
   }
 
+  /* Delete selected */
+  if(gomb=='d'){
+    int i=-1;
+    int n=0;
+    char ize[200];
+    while((i=m_step(i,1))<MAIL_DB) ++n;
+    sprintf(ize,"Are you sure to (un)delete %d mails?",n);
+    box_message(ize);waitkey();
+    if(gomb=='Y'){
+      int i=-1;
+      while((i=m_step(i,1))<MAIL_DB){
+	M_FLAGS(i)^=MAILFLAG_DEL;
+	UPDATE_REK(i);
+      }
+    }
+    goto ujra;
+  }
+
   /* COMPOSE */ 
   if(gomb=='c'){
     strcpy(_from,__from);
