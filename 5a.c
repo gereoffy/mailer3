@@ -450,6 +450,34 @@ do{
     goto ujra;
   }
 
+  /* Upgrade record */
+  if(gomb=='u'){
+    if(upgrade_rek(folder,&folder->f_mails[yy])>0){
+      UPDATE_REK(yy);
+      ++yy;
+    }
+    goto ujra;
+  }
+
+  /* Upgrade folder */
+  if(gomb=='U'){
+    int i;
+    int cnt=0;
+    for(i=0;i<MAIL_DB;i++){
+      rek_st old=folder->f_mails[i];
+      if(upgrade_rek(folder,&old)>0 && 
+         memcmp(&old,&folder->f_mails[i],sizeof(rek_st))){
+	folder->f_mails[i]=old;
+        UPDATE_REK(i);
+        ++cnt;
+	gotoxy(1,1);printf("[Updated: %d]  ",cnt);refresh();
+      }
+    }
+    sprintf(sor,"Records changed: %d",cnt);
+    box_message(sor); waitkey();
+    goto ujra;
+  }
+
   /* COMPOSE */ 
   if(gomb=='c'){
     strcpy(_from,__from);
