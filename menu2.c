@@ -24,6 +24,7 @@ int draw_menu_addrlist(int ys,int tipus,char keyflag){
     if(strlen(MENUITEMS1(i))>xs1)xs1=strlen(MENUITEMS1(i));
     if(strlen(MENUITEMS2(i))>xs2)xs2=strlen(MENUITEMS2(i));
   }
+  if(xs1+xs2>72) xs2=70-xs1;
   if((ys2=ys)>(term_ys-2))ys2=(term_ys-2);
   xs=(++xs1)+xs2;
   x=(term_xs-4-xs)/2; y=(term_ys+3-ys2)/2;
