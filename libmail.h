@@ -60,6 +60,15 @@ extern mime_st mime_parts[MAX_MIMEPARTS];
 extern int default_mimeflags;
 
 /*****************************************************************************/
+#define MAX_ADDR 8
+
+extern int addr_count;
+extern char addr_list_t[MAX_ADDR][10];
+extern char addr_list_v[MAX_ADDR][128];
+
+extern char message_id[];
+
+/*****************************************************************************/
 
 #define sormaxsize 1024
 
