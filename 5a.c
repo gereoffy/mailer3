@@ -411,14 +411,15 @@ load_termcap(NULL);
 
 restart:
 { int i;
-  printf("Updating folder...\n");
-  i=update_folder(folder);
+  folder_size=filesize(foldername); //folder->folder_size;
+  printf("Updating folder... (%d -> %d)\n",folder->folder_size,folder_size);
+  // use full hash if more than 5% new mails!
+  i=update_folder(folder,(folder_size-folder->folder_size>folder->folder_size/20) ? 1 : 0);
   printf("update_folder return value=%d\n",i);
   if(i) fatal(1,"Cannot open folder/index");
-  folder_size=filesize(foldername); //folder->folder_size;
   if(folder_size!=folder->folder_size){
     printf("foldersize=%d != filesize=%d\n",folder->folder_size,folder_size);
-    abort();
+//    abort();
   }
 }
 
