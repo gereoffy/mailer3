@@ -14,7 +14,7 @@
 #ifdef USE_IOCTL
 #include <sys/ioctl.h>
 #endif
-#include <termios.h>
+#include <sys/termios.h>
 #include <unistd.h>
 
 #include "keycodes.h"
@@ -199,16 +199,15 @@ found:
 
 void getch2_enable(){
 struct termios tio_new;
-    tcgetattr(0,&tio_orig);
+    ioctl(0,TCGETS,&tio_orig); /*  tcgetattr(0,&tio_orig); */
     tio_new=tio_orig;
     tio_new.c_lflag &= ~(ICANON|ECHO); /* Clear ICANON and ECHO. */
     tio_new.c_cc[VMIN] = 1;
     tio_new.c_cc[VTIME] = 0;
-    tcsetattr(0,TCSANOW,&tio_new);
+    ioctl(0,TCSETS,&tio_new); /*   tcsetattr(0,TCSANOW,&tio_new); */
 }
 
 void getch2_disable(){
-    tcsetattr(0,TCSANOW,&tio_orig);
+    ioctl(0,TCSETS,&tio_orig); /*   tcsetattr(0,TCSANOW,&tio_orig); */
 }
-
 
