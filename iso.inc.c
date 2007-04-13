@@ -184,6 +184,24 @@ char* hexa2ascii(char* sor,int ulflag)
 }
 
 
+
+#include <iconv.h>
+int codepage_conv(char* t,char* s,char* kodlap){
+    int len_s=strlen(s);
+    iconv_t cd=iconv_open("LATIN2",kodlap);
+    if(cd==(iconv_t)(-1)){
+	// unknown conversion
+//	printf("### codepage_conv: iconv error!\n");
+	strcpy(t,s); return len_s;
+    }
+    int len_t=768;
+    int len=iconv(cd, &s, &len_s, &t, &len_t);
+//    printf("### codepage_conv: len=%d len_t=%d len_s=%d\n",len,len_t,len_s);
+    return 768-len_t;
+}
+
+
+
 char* iso(char* sor){
 char sor1[4*256],sor3[4*256],kodlap[4*256],temp[4*256];
 char isoflag=0;
@@ -207,7 +225,10 @@ char *s=0;
       *s=0;
       if(iso_kodolas=='B' || iso_kodolas=='b')
         s=(char*)decode_b64(sor3); else s=hexa2ascii(sor3,1);
-      while((c=*s++)) *t++=c;
+      //printf("### kodlap='%s' s='%s'\n",kodlap,s);
+      //while((c=*s++)) *t++=c;
+      t+=codepage_conv(t,s,kodlap);
+      
       isoflag=0;
       isocnt=2;
       i++;
@@ -219,7 +240,13 @@ char *s=0;
       while((j<=strlen(sor1)) && (sor1[j]!='?')) j++;
 //      printf("len(sor1)=%d i=%d j=%d\n",strlen(sor1),i,j);
       //len(sor1)=76 i=2 j=3
-      if(j-i-5>0) strncpy(kodlap,sor1+i+5,j-i-5);
+
+// sor1=' =?UTF-8?Q?[iWiW]_...
+//       0123456789
+//         i     j
+
+//      printf("### sor1='%s' i=%d j=%d\n",sor1,i,j);
+      if(j-i-1>0){ strncpy(kodlap,sor1+i+1,j-i-1);kodlap[j-i-1]=0; }
       isoflag=1; s=sor3;
       iso_kodolas=sor1[j+1];
       i=j+3;
