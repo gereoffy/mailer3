@@ -22,6 +22,10 @@ int draw_menu_mimeparts(int ys,int tipus,char keyflag){
     if(strlen(MENUITEMS2(i))>xs2)xs2=strlen(MENUITEMS2(i));
   }
   if((ys2=ys)>(term_ys-2))ys2=(term_ys-2);
+  ////2010 A'rpi
+  if(xs1>screen_width/3*2) xs1=screen_width/3*2;
+  if(xs1+xs2+8>screen_width) xs2=screen_width-8-xs1;
+  ////
   xs=(++xs1)+xs2;
   x=(term_xs-4-xs)/2; y=(term_ys+3-ys2)/2;
   draw_box(x-1,y-1,xs+3,ys2+1);
