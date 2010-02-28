@@ -92,10 +92,10 @@ char fl1=0;
 char sor[1024];
   strcpy(sor,hova);
   do{
-    gotoxy(1,1);printf("%d/%d (%d) ",x,xs,strlen(sor));
+//    gotoxy(1,1);printf("%d/%d (%d) ",x,xs,strlen(sor)); // debug
     gotoxy(x0,y0);printf("%-*.*s",xs,xs,sor+xbase);gotoxy(x0+x,y0);refresh();
     waitkey();
-    if((gomb>=32)&&(gomb<126)){     /* insert char */
+    if((gomb>=32)&&(gomb<255)){     /* insert char */
 //      if(strlen(sor)<xs){
 	      if(!fl1) sor[1]=0; else memmove(sor+x+xbase+1,sor+x+xbase,strlen(sor)-x-xbase+1);
         sor[xbase+x]=gomb;

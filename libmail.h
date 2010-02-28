@@ -25,7 +25,7 @@ typedef struct rek_tip {
         int from;
         int to;
         int subject;
-        int date;
+        int pos_hi; //date volt, de sose hasznaltuk
         int pos;
         int size;
         int msize;
@@ -35,7 +35,7 @@ typedef struct rek_tip {
 typedef struct {
   int mfs;                  /* "mail filesystem" */
   int mail_db;
-  int folder_size;
+  off_t folder_size;
   int strings_pos;
   int f_mails_size;
   rek_st *f_mails;
@@ -50,7 +50,7 @@ typedef struct {
 
 /*****************************************************************************/
 #define MAX_MIMEPARTS 32
-#define MIME_MAXLEN 40
+#define MIME_MAXLEN 256
 
 typedef struct {
   int start;
@@ -102,7 +102,7 @@ extern void kodlap_generalo();
 extern char* strncpy2(char* d,char* s,int n);
 extern char* strncpy2n(char* d,char* s,int n);
 extern char* strofs2(char* s,int x);
-extern int filesize(char* fnev);
+extern off_t filesize(char* fnev);
 extern int strposc(char c,char* sor);
 extern char* copy(char* hova,char* mibol,int p,int l);
 extern char* upcstr(char* s2,char* s1);

@@ -55,8 +55,8 @@ static int re_malloc(char **ptr,const int oldsize,int newsize,const char* what){
 }
 
 //  folder_seek(folder,mail->pos);
-static int folder_seek(folder_st* folder,int i){
-  if(fseek(folder->file_folder,i,SEEK_SET)) return -1;
+static int folder_seek(folder_st* folder,off_t i){
+  if(fseeko(folder->file_folder,i,SEEK_SET)) return -1;
   file_readln=folder->file_folder;
   eof_jel=0; puffer_update();
   sor_pos=puffer_pos+puffer_mut;
@@ -182,10 +182,11 @@ int open_folder(folder_st* folder,char *folder_name,char *index_name,char *strin
     if(folder->mail_db!=fread(folder->f_mails,sizeof(rek_st),folder->mail_db,folder->file_index))
       { printf("load_folder: index read error");return 8;}
     folder->folder_size=folder->f_mails[folder->mail_db-1].pos+
+			((long long)folder->f_mails[folder->mail_db-1].pos_hi<<32)+
 			folder->f_mails[folder->mail_db-1].size;
   }
 
-  printf("### folder_size=%d  mail_db=%d\n",folder->folder_size,folder->mail_db);
+  printf("### folder_size=%lld  mail_db=%d\n",(long long)folder->folder_size,folder->mail_db);
 
   // Load the STRINGS file:
 
@@ -215,8 +216,9 @@ int open_folder(folder_st* folder,char *folder_name,char *index_name,char *strin
 }
 
 static int parse_mail(folder_st* folder,rek_st* mail){
-    mail->date=0;
     mail->pos=sor_pos;
+    mail->pos_hi=sor_pos>>32;
+//    mail->date=0;
     mail->from=mail->to=mail->subject=0;
 //  mail->flags=MAILFLAG_NEW;
     mail->flags&=~(MAILFLAG_ATTACH|MAILFLAG_LIST);
@@ -247,21 +249,21 @@ static int parse_mail(folder_st* folder,rek_st* mail){
 	    mail->flags|=MAILFLAG_ATTACH;
 	}
     }while(folder->mfs!=MFS_INBOX || strncmp(sor,"From ",5) );
-    mail->msize=sor_pos-mail->msize;
+    mail->msize=sor_pos-mail->msize; // tulcsordul???
     mail->size=sor_pos-mail->pos;
     if(eol_jel) ++sor_pos; // skip mail separator char (PMM folders)
     return mail->size;
 }
 
 int upgrade_rek(folder_st* folder,rek_st* mail){
-  if(folder_seek(folder,mail->pos)) return -1;
+  if(folder_seek(folder,mail->pos+((long long)mail->pos_hi<<32))) return -1;
   return parse_mail(folder,mail);
 }
 
   /* Read folder, update index */
 int update_folder(folder_st* folder,int full_hash){
 
-  if(folder_seek(folder,folder->folder_size)){ printf("Cannot seek folder to %d\n",sor_pos); return 6;}
+  if(folder_seek(folder,folder->folder_size)){ printf("Cannot seek folder to %lld\n",(long long)sor_pos); return 6;}
 
 if(!eof_jel){ /* have new mail */
 
@@ -330,8 +332,8 @@ char not_empty,header_ok;
 char field[256];   /* pl: "CONTENT_ENCODING:" */
 char *data;
 
-  folder_seek(folder,mail->pos);
-  eol_jel=0; eol_pos=mail->pos+mail->size;
+  folder_seek(folder,mail->pos+((long long)mail->pos_hi<<32));
+  eol_jel=0; eol_pos=mail->pos+((long long)mail->pos_hi<<32)+mail->size;
 
   boundary_db=0; boundary[0][0]=0;
   mime_db=0;
@@ -614,7 +616,7 @@ int total=0;
 void save_mail_source_file(folder_st *folder,rek_st *mail, FILE* f){
 void *p=malloc(mail->size);
   if(!f || !p) return;
-  fseek(folder->file_folder,mail->pos,SEEK_SET);
+  fseeko(folder->file_folder,mail->pos+((long long)mail->pos_hi<<32),SEEK_SET);
   fread(p,1,mail->size,folder->file_folder);
   fwrite(p,1,mail->size,f);
   free(p);
@@ -646,7 +648,7 @@ if(argc>1) foldername=argv[1]; else foldername=getenv("MAIL");
 if(open_folder(folder,foldername,"mail.idx","mail.str")) fatal(1,"Cannot open folder/index");
 if(load_folder(folder)) fatal(2,"Cannot load index");
 
-printf("mail_db=%d  size=%d\n",folder->mail_db,folder->folder_size);
+printf("mail_db=%d  size=%lld\n",folder->mail_db,(long long)folder->folder_size);
 
 #if 0
 read_rek(folder,40,&mail);

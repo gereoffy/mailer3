@@ -62,7 +62,7 @@ static folder_st *folder=&default_folder;
 #define M_FROM(x) (&folder->f_strings[folder->f_mails[x].from])
 #define M_TO(x) (&folder->f_strings[folder->f_mails[x].to])
 #define M_SUBJ(x) (&folder->f_strings[folder->f_mails[x].subject])
-#define M_POS(x) (folder->f_mails[x].pos)
+#define M_POS(x) (folder->f_mails[x].pos+((long long)folder->f_mails[x].pos_hi<<32))
 #define M_SIZE(x) (folder->f_mails[x].size)
 #define M_MSIZE(x) (folder->f_mails[x].msize)
 #define M_FLAGS(x) (folder->f_mails[x].flags)
@@ -138,7 +138,7 @@ int i;
 
   /* a STATUSZ-sor kiirasa legfelulre: */
   set_color(0); gotoxy(0,0);
-  printf("[%c%c%c%s%c%s%c%s] %d/%d [%dx%d]  P:%d S:%d  [%c%c%c%c%c]\x1B[K",
+  printf("[%c%c%c%s%c%s%c%s] %d/%d [%dx%d]  P:%lld S:%d  [%c%c%c%c%c]\x1B[K",
     filter_extra ? 'E' : 'e',
     filter_attach ? 'A' : 'a',
     filter_deleted ? 'D' : 'd',
@@ -147,7 +147,7 @@ int i;
     filter_selected ? "" : "+",
     (filter_list<2) ? 'L' : 'l',
     filter_list ? "" : "+",
-    yy+1,MAIL_DB,term_xs,term_ys,M_POS(yy),M_SIZE(yy),
+    yy+1,MAIL_DB,term_xs,term_ys,(long long)M_POS(yy),M_SIZE(yy),
     '0'+from_mod,(default_mimeflags&MIMEFLAG_PQ)?'P':'p',
     skip_header?'h':'H', linewrap?'W':'w',
     case_insensitive?'I':'i'/*, redrawcnt++*/);
@@ -379,7 +379,7 @@ static void fatal(int n,char *s){
 }
 
 int main(int argc,char *argv[]){
-int folder_size=0;
+off_t folder_size=0;
 char *foldername;
 char *foldername_idx;
 char *foldername_str;
@@ -412,18 +412,18 @@ load_termcap(NULL);
 restart:
 { int i;
   folder_size=filesize(foldername); //folder->folder_size;
-  printf("Updating folder... (%d -> %d)\n",folder->folder_size,folder_size);
+  printf("Updating folder... (%lld -> %lld)\n",(long long)folder->folder_size,(long long)folder_size);
   // use full hash if more than 5% new mails!
   i=update_folder(folder,(folder_size-folder->folder_size>folder->folder_size/20) ? 1 : 0);
   printf("update_folder return value=%d\n",i);
   if(i) fatal(1,"Cannot open folder/index");
   if(folder_size!=folder->folder_size){
-    printf("foldersize=%d != filesize=%d\n",folder->folder_size,folder_size);
+    printf("foldersize=%lld != filesize=%lld\n",(long long)folder->folder_size,(long long)folder_size);
 //    abort();
   }
 }
 
-printf("mail_db=%d  size=%d\n",folder->mail_db,folder->folder_size);
+printf("mail_db=%d  size=%lld\n",folder->mail_db,(long long)folder->folder_size);
 last_new_mails=new_mails;
 
 /***************** BEGIN ************************/

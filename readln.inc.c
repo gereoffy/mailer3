@@ -3,16 +3,16 @@
 /******************************************************************************/
 
 static char puffer[PUFFSIZE];
-static int puffer_pos=0;
+static off_t puffer_pos=0;
 static int puffer_size=0;
 static int puffer_mut=0;
-static unsigned int sor_pos,eol_pos;
+static off_t sor_pos,eol_pos;
 static int eof_jel=0;
 static int eol_jel=0;
 static FILE *file_readln=NULL;   /* used for readln_sor(); function */
 
 static int puffer_update(){
-  puffer_pos=ftell(file_readln);
+  puffer_pos=ftello(file_readln);
   puffer_size=fread(&puffer,1,PUFFSIZE,file_readln);
   puffer_mut=0;
   if(puffer_size>0) return 1;

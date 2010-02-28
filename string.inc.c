@@ -22,7 +22,7 @@ char* strofs2(char* s,int x){
 }
 
 /* visszater az 'fnev' file meretevel */
-int filesize(char* fnev){
+off_t filesize(char* fnev){
   struct stat stb;
   stat(fnev,&stb);
   return(stb.st_size);

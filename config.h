@@ -3,7 +3,7 @@
 */
 
 /* >>> default for From: field <<< */
-char __from[]="Arpi <arpi@banki1.banki.hu>";
+char __from[]="Arpi <arpi@thot.banki.hu>";
 
 /* >>> Editor/Viewer program name: <<< */
 #define EDITOR_CMD "joe -asis "
@@ -22,9 +22,9 @@ char temp_nev[]="tempfile1.tmp";
 char cim_temp_nev[]="tempfile2.tmp";
 
 /* Menu system limits: max lines and line lengths */
-#define max_menuitems 32
-#define menuitem1_max 40
-#define menuitem2_max 40
+#define max_menuitems 64
+#define menuitem1_max 400
+#define menuitem2_max 400
 
 /* Time between new-mail checks ( seconds ) */
 #define HALFDELAY_TIME 2
