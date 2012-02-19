@@ -1,6 +1,5 @@
 /* GyS-TermIO v2.0 (for GySmail v3)          (C) 1999 A'rpi/ESP-team */
 
-#define USE_TERMCAP
 #define USE_IOCTL
 
 #define MAX_KEYS 64

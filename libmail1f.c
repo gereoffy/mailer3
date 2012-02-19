@@ -9,12 +9,12 @@
 
 #include "libmail.h"
 
-#define PUFFSIZE 0x4000
+#define PUFFSIZE 0x40000
 #define cim_temp_nev ".tmp.libMail~"
 
 #define STRINGS_MALLOC 0x10000
 #define STRINGS_HASH (64*1024)
-#define INDEX_ALLOC 1000
+#define INDEX_ALLOC 2048
 
 char sor[sormaxsize];
 char sor2[sormaxsize];
@@ -216,13 +216,14 @@ int open_folder(folder_st* folder,char *folder_name,char *index_name,char *strin
 }
 
 static int parse_mail(folder_st* folder,rek_st* mail){
+//    printf("parse_mail! pos=%lld\n",sor_pos);
     mail->pos=sor_pos;
     mail->pos_hi=sor_pos>>32;
 //    mail->date=0;
     mail->from=mail->to=mail->subject=0;
 //  mail->flags=MAILFLAG_NEW;
     mail->flags&=~(MAILFLAG_ATTACH|MAILFLAG_LIST);
-    eol_jel=0;eol_pos=-1;
+    eol_jel=0;eol_pos=0;
     // parse header:
     do{
       readln_sor2(folder->mfs,1); if(eof_jel) break;
@@ -252,6 +253,7 @@ static int parse_mail(folder_st* folder,rek_st* mail){
     mail->msize=sor_pos-mail->msize; // tulcsordul???
     mail->size=sor_pos-mail->pos;
     if(eol_jel) ++sor_pos; // skip mail separator char (PMM folders)
+//    printf("msize=%d size=%d\n",mail->msize,mail->size);
     return mail->size;
 }
 
@@ -399,8 +401,11 @@ char *data;
           }
 	      continue;
         }
+	if(strstr(usor,"TEXT/HTML")) mime_parts[mime_db].flags|=MIMEFLAG_HTML;
 	// Encoding?
 	if(strstr(usor,"ISO-8859")) mime_parts[mime_db].flags|=MIMEFLAG_ISO;
+	if(strstr(usor,"UTF-8")) mime_parts[mime_db].flags|=MIMEFLAG_UTF8;
+	if(strstr(usor,"UTF8")) mime_parts[mime_db].flags|=MIMEFLAG_UTF8;
 	// Filename?
         if((i=strpos("NAME=",usor))>=0){
           char *p=strchr(&sor[i+6],34);
@@ -483,16 +488,41 @@ if(mime_db>2){
 
 /************************** SAVE_PART *************************************/
 
-static void wrap_print(FILE *f2,char *replystr,char* sor,int linewrap){
-  unsigned char* p=sor;
+static void wrap_print(FILE *f2,char *replystr,char* sor,int linewrap,int utf8,int html){
+  static char sorU[sormaxsize];
+  if(utf8){
+    char cp[100];
+    strcpy(cp,"UTF8");
+    int tlen=codepage_conv(sorU,sor,cp);
+    sorU[tlen]=0;
+    sor=sorU;
+  }
+  
   char* q;
   int maxlen,wraplen;
+  unsigned char* p=sor;
 // filter
 // TODO: UTF8 decoder
        while(*p){
-           if((*p!=9 && *p<32) || (*p>=127 && *p<224) || *p>254) *p='.';
+//           if((*p!=9 && *p<32) || (*p>=127 && *p<224) || *p>254) *p='.';
+//           if((*p!=9 && *p<32)) *p='.';
+           if((*p!=9 && *p<32) || (*p>=127 && *p<160) || *p>254) *p='.';
            ++p;
        }
+
+// remove html tags
+  if(html){
+    q=p;
+    int flag=0;
+    int c;
+    while((c=*p++)){
+	if(c=='<') flag=1; else
+	if(c=='>') flag=0; else
+	if(!flag) *q++=c;
+    }
+    *q=0;
+  }
+
 // wrap
   do{
     maxlen=strlen(sor);
@@ -526,6 +556,8 @@ static void wrap_print(FILE *f2,char *replystr,char* sor,int linewrap){
 /*  Writes 'i'th part to file 'f2', using reply prefix 'replystr' */
 void save_part(folder_st *folder,int i,FILE *f2,char *replystr,int skip_header, int linewrap){
   int b64_jel=(mime_parts[i].flags & MIMEFLAG_B64);
+  int utf8_jel=(mime_parts[i].flags & MIMEFLAG_UTF8);
+  int html_jel=(mime_parts[i].flags & MIMEFLAG_HTML);
   int header_ok=1;
   FILE *ft2;
   char sor3[sormaxsize];
@@ -555,7 +587,7 @@ void save_part(folder_st *folder,int i,FILE *f2,char *replystr,int skip_header, 
 	     rewind(ft2);
 	     while(!feof(ft2)){
 	       fgets(sor,sormaxsize-16,ft2);sor[strlen(sor)-1]=0;
-               wrap_print(f2,replystr,sor,linewrap);
+               wrap_print(f2,replystr,sor,linewrap,utf8_jel,html_jel);
 	     }
 	     fclose(ft2);
          unlink(cim_temp_nev);
@@ -575,20 +607,20 @@ void save_part(folder_st *folder,int i,FILE *f2,char *replystr,int skip_header, 
 	if(p){
 	    // line has pq coded CR/LF - split it!
 	    p[0]=0;++p;
-	    wrap_print(f2,replystr,sor3,linewrap);
+	    wrap_print(f2,replystr,sor3,linewrap,utf8_jel,html_jel);
 	    memmove(sor3,p,strlen(p)+1);
 	}
       } else {
         strcat(sor3,hexa2ascii(sor,0));
-        wrap_print(f2,replystr,sor3,linewrap);
+        wrap_print(f2,replystr,sor3,linewrap,utf8_jel,html_jel);
         sor3[0]=0;
       }
     } else {
-        wrap_print(f2,replystr,sor,linewrap);
+        wrap_print(f2,replystr,sor,linewrap,utf8_jel,html_jel);
     }
 
   }while(!eol_jel);
-  if(sor3[0]) wrap_print(f2,replystr,sor3,linewrap);
+  if(sor3[0]) wrap_print(f2,replystr,sor3,linewrap,utf8_jel,html_jel);
 }
 
 

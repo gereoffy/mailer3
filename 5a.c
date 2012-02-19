@@ -6,7 +6,7 @@
 #include "config.h"
 #include "term1.c"
 
-#define VERSION "GyikSoft Mailer for UNIX v3.99pre2 by Arpi/ESP-team (http://esp-team.scene.hu)\n\n"
+#define VERSION "GyikSoft Mailer for UNIX v3.99pre2-64 by Arpi/ESP-team (http://esp-team.scene.hu)\n\n"
 
 /******************************************************************************/
 
@@ -253,6 +253,10 @@ static int compose(){
     fprintf(f_cim,"From: %s\nTo: %s\nSubject: %s\n",_from,_to,_subject);
     if(message_id[0]) 
       fprintf(f_cim,"In-Reply-To: %s\n",message_id);
+//Content-Type: text/plain; charset=utf-8
+//Content-Transfer-Encoding: 8bit
+    fprintf(f_cim,"Content-Type: text/plain; charset=iso-8859-2\n");
+    fprintf(f_cim,"Content-Transfer-Encoding: 8bit\n");
     fprintf(f_cim,"X-Mailer: " VERSION);
     fclose(f_cim);
     clrscr();refresh();
@@ -400,7 +404,9 @@ char *foldername_str;
       foldername_str="MAIL.str";
   }
 
+#ifdef USE_TERMCAP
 load_termcap(NULL);
+#endif
 
 { int i;
   printf("Reading folder...\n");
@@ -722,7 +728,7 @@ do{
       if(mime_db>0){
         int i;
         for(i=0;i<mime_db;i++){
-          if(mime_parts[i].flags&MIMEFLAG_B64){
+          if(mime_parts[i].flags&(MIMEFLAG_B64|MIMEFLAG_HTML)){
 	    box_message2("Include this part? (Y/N)",mime_parts[i].name);
             waitkey(); if(gomb!='y') continue;
           }

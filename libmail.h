@@ -20,13 +20,15 @@
 #define MIMEFLAG_PQ 1
 #define MIMEFLAG_ISO 2
 #define MIMEFLAG_B64 4
+#define MIMEFLAG_UTF8 8
+#define MIMEFLAG_HTML 16
 
 typedef struct rek_tip {
         int from;
         int to;
         int subject;
-        int pos_hi; //date volt, de sose hasznaltuk
-        int pos;
+        unsigned int pos_hi; //date volt, de sose hasznaltuk
+        unsigned int pos;
         int size;
         int msize;
         int flags;
@@ -49,12 +51,12 @@ typedef struct {
 } folder_st;
 
 /*****************************************************************************/
-#define MAX_MIMEPARTS 32
-#define MIME_MAXLEN 256
+#define MAX_MIMEPARTS 100
+#define MIME_MAXLEN 1024
 
 typedef struct {
-  int start;
-  int end;
+  off_t start;
+  off_t end;
   int flags;
   char name[MIME_MAXLEN];
   char encoding[MIME_MAXLEN];

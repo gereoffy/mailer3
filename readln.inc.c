@@ -14,6 +14,8 @@ static FILE *file_readln=NULL;   /* used for readln_sor(); function */
 static int puffer_update(){
   puffer_pos=ftello(file_readln);
   puffer_size=fread(&puffer,1,PUFFSIZE,file_readln);
+//  printf("puffer_update: size=%d  pos=%lld \n",puffer_size,puffer_pos);
+//  sleep(3);
   puffer_mut=0;
   if(puffer_size>0) return 1;
   eof_jel=1;return 0;
@@ -25,7 +27,7 @@ static int readln_sor2(int mfs, int header) {
 int i=0;
 register char c;
   sor_pos=puffer_pos+puffer_mut;
-  if(sor_pos>=eol_pos){eol_jel=1;sor[0]=0;return(-1);}
+  if(sor_pos>=eol_pos && eol_pos){eol_jel=1;sor[0]=0;return(-1);}
 
 again:
   sor_next=0;
