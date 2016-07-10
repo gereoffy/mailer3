@@ -187,10 +187,9 @@ char* hexa2ascii(char* sor,int ulflag)
 
 #include <iconv.h>
 int codepage_conv(char* t,char* s,char* kodlap){
-    int len_s=strlen(s);
-    int len_t=768,len,i;
+    size_t len_s=strlen(s);
+    size_t len_t=768,len,i;
     char* k=kodlap;
-    iconv_t cd;
     while(*k){ *k=(*k>='a' && *k<='z') ? *k-32 : *k; ++k; }// conv to uppercase
     k=kodlap;
     if(!strcmp(kodlap,"UTF8")) k="UTF-8"; else
@@ -198,12 +197,15 @@ int codepage_conv(char* t,char* s,char* kodlap){
     if(!strcmp(kodlap,"ISO-8859-2")) k="ISO8859-2"; else
     if(!strcmp(kodlap,"ISO-8859-15")) k="ISO8859-15"; else
     if(!strcmp(kodlap,"ISO-8859-16")) k="ISO8859-16";
-    cd=iconv_open("ISO8859-2",k);
+    iconv_t cd=iconv_open("ISO8859-2",k);
     if(cd==(iconv_t)(-1)){
 	// unknown conversion
 	printf("### codepage_conv: iconv error! (cp='%s')\n",kodlap);
 	strcpy(t,s); return len_s;
     }
+//    printf("sizeof:  int=%d  size_t=%d\n",(int)sizeof(int),(int)sizeof(size_t));
+//    printf("len_s=%d\n",(int)len_s);
+//    printf("len_t=%d\n",(int)len_t);
     len=iconv(cd, &s, &len_s, &t, &len_t);
 //    printf("### codepage_conv: len=%d len_t=%d len_s=%d\n",len,len_t,len_s);
     iconv_close(cd);

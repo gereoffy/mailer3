@@ -401,7 +401,7 @@ char *data;
           }
 	      continue;
         }
-	if(strstr(usor,"TEXT/HTML")) mime_parts[mime_db].flags|=MIMEFLAG_HTML;
+	if(strstr(usor,"HTML")) mime_parts[mime_db].flags|=MIMEFLAG_HTML;
 	// Encoding?
 	if(strstr(usor,"ISO-8859")) mime_parts[mime_db].flags|=MIMEFLAG_ISO;
 	if(strstr(usor,"UTF-8")) mime_parts[mime_db].flags|=MIMEFLAG_UTF8;
@@ -512,13 +512,38 @@ static void wrap_print(FILE *f2,char *replystr,char* sor,int linewrap,int utf8,i
 
 // remove html tags
   if(html){
+    p=sor;
     q=p;
     int flag=0;
     int c;
     while((c=*p++)){
-	if(c=='<') flag=1; else
+	if(c=='<'){
+	    flag=1; 
+	    if(*p=='b' || *p=='B')
+		if(p[1]=='r' || p[1]=='R')
+		    *q++=10; // BR
+	} else
 	if(c=='>') flag=0; else
-	if(!flag) *q++=c;
+	if(!flag){
+	    if(c=='&'){
+		// special
+		char *r=p;
+		while(*p && *p!=';'){
+		    if(*p>='A' && *p<='Z') *p+=32; // lowercase
+		    ++p;
+		}
+		if(*p){
+		    *p=0;
+		    if(!strcmp(r,"quot")) *q++='"'; else
+		    if(!strcmp(r,"amp")) *q++='&'; else
+		    if(!strcmp(r,"lt")) *q++='<'; else
+		    if(!strcmp(r,"gt")) *q++='>'; else
+		    if(!strcmp(r,"tilde")) *q++='~';
+		    ++p;
+		} else p=r;
+	    } else
+	    *q++=c;
+	}
     }
     *q=0;
   }
